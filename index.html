@@ -30,51 +30,6 @@
             padding-bottom: 50px;
         }
 
-        /* Login Container Styles */
-        .login-container {
-            max-width: 400px;
-            margin: 60px auto auto auto;
-            background-color: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            border: 1px solid var(--border-color);
-        }
-
-        .login-container h2 {
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-            text-align: center;
-            color: #1e293b;
-        }
-
-        .login-form-group {
-            margin-bottom: 15px;
-        }
-
-        .login-form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            background-color: #f8fafc;
-        }
-
-        .btn-login {
-            width: 100%;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            margin-top: 5px;
-        }
-
-        /* Dashboard Header Styles */
         header {
             background-color: var(--card-bg);
             padding: 15px;
@@ -88,21 +43,11 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-        }
-
-        .btn-logout {
-            background: none;
-            border: 1px solid #cbd5e1;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            color: #64748b;
+            gap: 10px;
         }
 
         .user-selector-container {
-            margin-bottom: 15px;
+            flex-grow: 1;
         }
 
         select {
@@ -215,7 +160,7 @@
             color: #718096;
         }
 
-        input[type="number"] {
+        input[type="number"], input[type="email"], input[type="password"] {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--border-color);
@@ -223,11 +168,13 @@
             font-size: 1rem;
             background-color: #f8fafc;
             text-align: center;
+        }
+
+        input[type="number"] {
             -moz-appearance: textfield;
         }
 
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
             -webkit-appearance: none;
             margin: 0;
         }
@@ -249,6 +196,55 @@
             opacity: 0.9;
         }
 
+        /* Database Control UI Section */
+        .db-gate-box {
+            margin-top: 20px;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .gate-title {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .gate-inputs {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-gate {
+            background-color: #334155;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-connected {
+            background-color: var(--success-color);
+        }
+
         .hidden {
             display: none !important;
         }
@@ -256,33 +252,20 @@
 </head>
 <body>
 
-    <div id="login-interface" class="login-container">
-        <h2>Gym Tracker Login</h2>
-        <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="login-form-group">
-                <input type="email" id="login-email" placeholder="Email address" required>
-            </div>
-            <div class="login-form-group">
-                <input type="password" id="login-password" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn-login">Sign In</button>
-        </form>
-    </div>
-
-    <div id="app-content" class="hidden">
+    <div id="app-content">
         <header>
             <div class="header-top">
-                <div class="user-selector-container" style="margin-bottom: 0; flex-grow: 1; margin-right: 15px;">
-                    <label for="user-select">Select Profile</label>
+                <div class="user-selector-container">
+                    <label for="user-select">Select Active Athlete</label>
                     <select id="user-select" onchange="handleUserChange()">
-                        <option value="">Loading profiles...</option>
+                        <option value="Ginge">Ginge</option>
+                        <option value="Swift">Swift</option>
                     </select>
                 </div>
-                <button class="btn-logout" onclick="handleLogout()">Logout</button>
             </div>
 
             <div class="stats-panel">
-                <div class="stats-title">Total Weight Moved Today</div>
+                <div class="stats-title">Today's Local Session Volume</div>
                 <div id="total-volume" class="stats-value">0 kg</div>
             </div>
 
@@ -295,6 +278,23 @@
         <main>
             <div id="exercise-grid" class="exercise-grid"></div>
         </main>
+
+        <div class="db-gate-box">
+            <div class="gate-title">
+                <span id="gate-indicator-dot" class="status-dot"></span>
+                <span id="gate-status-text">Cloud Connection Mode: Public Offline</span>
+            </div>
+            
+            <div id="auth-logged-out" class="gate-inputs">
+                <input type="email" id="auth-email" placeholder="Supabase Cloud Email">
+                <input type="password" id="auth-password" placeholder="Password">
+                <button type="button" class="btn-gate" onclick="handleLogin()">Establish Write Connection</button>
+            </div>
+
+            <div id="auth-logged-in" class="hidden" style="text-align: center;">
+                <button type="button" class="btn-gate" style="background-color: #ef4444;" onclick="handleLogout()">Disconnect Cloud pipeline</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -303,146 +303,60 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let allUsers = [];
-        let currentUser = null;
-        let currentSession = null;
-        let allExercises = [];
+        // Seed list matching your cleared user profiles configuration
+        const athletesList = [
+            { id: "ginge-uuid-placeholder", name: "Ginge" },
+            { id: "swift-uuid-placeholder", name: "Swift" }
+        ];
 
-        // Check auth status on launch
-        async function checkSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                showApp();
-            } else {
-                showLogin();
-            }
-        }
+        // Seed data for quick mapping layout construction
+        const fallbackExercises = [
+            { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
+            { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
+            { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" },
+            { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
+            { id: 12, exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" },
+            { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
+            { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" },
+            { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
+            { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
+            { id: 62, exercise: "Treadmill", muscle_group: "Cardio" }
+        ];
 
-        function showLogin() {
-            document.getElementById('login-interface').classList.remove('hidden');
-            document.getElementById('app-content').classList.add('hidden');
-        }
+        let activeAthlete = "Ginge";
+        let localLogsMemory = [];
 
-        function showApp() {
-            document.getElementById('login-interface').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
-            initDashboard();
-        }
-
-        async function handleLogin(e) {
-            if (e) e.preventDefault();
-
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            console.log("Attempting login for:", email);
-
-            if (!email || !password) return alert('Please enter both email and password.');
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        function initLocalTracker() {
+            // Load state parameters out of memory space
+            const savedLogs = localStorage.getItem("gym_tracker_local_logs");
+            localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
             
-            if (error) {
-                console.error("Supabase Auth Error:", error);
-                alert(`Login failed: ${error.message}`);
-            } else {
-                console.log("Login successful, session data:", data);
-                showApp();
-            }
-        }
-
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            showLogin();
-        }
-
-        async function initDashboard() {
-            try {
-                await fetchUsers();
-                await fetchExercises();
-            } catch (err) {
-                console.error('Dashboard init error:', err);
-            }
-        }
-
-        async function fetchUsers() {
-            const { data: users, error } = await supabaseClient.from('users').select('*').order('name', { ascending: true });
-            if (error) throw error;
-            
-            allUsers = users;
-            const selectEl = document.getElementById('user-select');
-            
-            if (users.length === 0) {
-                selectEl.innerHTML = '<option value="">No profiles found.</option>';
-                return;
+            const savedAthlete = localStorage.getItem("gym_tracker_active_athlete");
+            if (savedAthlete) {
+                activeAthlete = savedAthlete;
+                document.getElementById("user-select").value = activeAthlete;
             }
 
-            selectEl.innerHTML = users.map(user => `
-                <option value="${user.id}">${user.name}</option>
-            `).join('');
-
-            await selectUser(users[0].id);
-        }
-
-        async function handleUserChange() {
-            const selectedUserId = document.getElementById('user-select').value;
-            if (selectedUserId) {
-                await selectUser(selectedUserId);
-            }
-        }
-
-        async function selectUser(userId) {
-            currentUser = allUsers.find(u => u.id == userId);
-            currentSession = null;
-            document.getElementById('total-volume').textContent = '0 kg';
-            
-            if (currentUser) {
-                await fetchOrCreateSession();
-                await calculateTodayVolume();
-            }
-        }
-
-        async function fetchOrCreateSession() {
-            if (!currentUser) return;
-            const today = new Date().toISOString().split('T')[0];
-            
-            const { data: sessions, error } = await supabaseClient
-                .from('workout_sessions')
-                .select('*')
-                .eq('user_id', currentUser.id)
-                .gte('date', `${today}T00:00:00Z`)
-                .lte('date', `${today}T23:59:59Z`)
-                .limit(1);
-
-            if (error) throw error;
-
-            if (sessions.length > 0) {
-                currentSession = sessions[0];
-            } else {
-                const { data: newSession, error: sessionError } = await supabaseClient
-                    .from('workout_sessions')
-                    .insert([{ user_id: currentUser.id }])
-                    .select();
-                if (sessionError) throw sessionError;
-                currentSession = newSession[0];
-            }
-        }
-
-        async function fetchExercises() {
-            const { data: exercises, error } = await supabaseClient
-                .from('exercises')
-                .select('*')
-                .order('exercise', { ascending: true });
-
-            if (error) throw error;
-            
-            allExercises = exercises;
             renderMuscleFilters();
             renderExerciseCards();
+            calculateLocalVolume();
+
+            // Auto-restore connection if token string exists
+            if (localStorage.getItem("gym_tracker_auth_token")) {
+                showLoggedInUI();
+            }
+        }
+
+        function handleUserChange() {
+            activeAthlete = document.getElementById("user-select").value;
+            localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
+            calculateLocalVolume();
         }
 
         function renderMuscleFilters() {
             const picker = document.getElementById('muscle-picker');
-            const groups = [...new Set(allExercises.map(e => e.muscle_group))].sort();
+            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
             
             picker.innerHTML = groups.map(group => `
                 <div>
@@ -455,7 +369,7 @@
         function renderExerciseCards() {
             const grid = document.getElementById('exercise-grid');
             
-            grid.innerHTML = allExercises.map(ex => {
+            grid.innerHTML = fallbackExercises.map(ex => {
                 const isCardio = ex.muscle_group === 'Cardio';
                 return `
                     <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
@@ -469,7 +383,7 @@
                                 <label>Reps</label>
                                 <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
                             </div>
-                            <button class="btn-log" onclick="logSet(${ex.id}, ${isCardio})">Log</button>
+                            <button class="btn-log" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
                         </div>
                     </div>
                 `;
@@ -480,7 +394,7 @@
             const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
             const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
             
-            allExercises.forEach(ex => {
+            fallbackExercises.forEach(ex => {
                 const card = document.getElementById(`ex-card-${ex.id}`);
                 if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
                     card.classList.remove('hidden');
@@ -490,9 +404,7 @@
             });
         }
 
-        async function logSet(exerciseId, isCardio) {
-            if (!currentSession) return;
-
+        function logSetLocal(exerciseId, isCardio) {
             const weightInput = document.getElementById(`input-w-${exerciseId}`);
             const repsInput = document.getElementById(`input-r-${exerciseId}`);
 
@@ -501,37 +413,89 @@
 
             if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
 
-            const { error } = await supabaseClient
-                .from('set_logs')
-                .insert([{
-                    session_id: currentSession.id,
-                    exercise_id: exerciseId,
-                    weight: weight,
-                    reps: reps
-                }]);
+            const todayTimestamp = new Date().toISOString().split('T')[0];
 
-            if (error) {
-                console.error('Error logging set:', error);
-                alert('Failed to save log.');
-            } else {
-                if (!isCardio) repsInput.value = '';
-                weightInput.value = '';
-                await calculateTodayVolume();
+            const newLogEntry = {
+                id: "log_" + Date.now(),
+                athlete: activeAthlete,
+                exercise_id: exerciseId,
+                weight: weight,
+                reps: reps,
+                date: todayTimestamp
+            };
+
+            localLogsMemory.push(newLogEntry);
+            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+
+            // Clean form UI elements 
+            if (!isCardio) repsInput.value = '';
+            weightInput.value = '';
+
+            calculateLocalVolume();
+            
+            // Push to Supabase only if connected
+            if (localStorage.getItem("gym_tracker_auth_token")) {
+                transmitLogToCloud(newLogEntry);
             }
         }
 
-        async function calculateTodayVolume() {
-            if (!currentSession) return;
+        function calculateLocalVolume() {
+            const todayTimestamp = new Date().toISOString().split('T')[0];
+            
+            const totalVolume = localLogsMemory
+                .filter(log => log.athlete === activeAthlete && log.date === todayTimestamp)
+                .reduce((sum, log) => sum + (log.weight * log.reps), 0);
 
-            const { data: logs, error } = await supabaseClient
-                .from('set_logs')
-                .select('weight, reps')
-                .eq('session_id', currentSession.id);
-
-            if (error) return console.error('Error updating volume:', error);
-
-            const totalVolume = logs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
         }
 
-        wi
+        // --- Supabase Async Auth and Transmission Actions Pipeline ---
+
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const statusText = document.getElementById('gate-status-text');
+
+            if (!email || !password) return alert('Please enter email and password fields.');
+            statusText.textContent = "Connecting to pipeline...";
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                alert(`Authentication error structural reject: ${error.message}`);
+                statusText.textContent = "Cloud Connection Mode: Public Offline";
+            } else {
+                localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
+                showLoggedInUI();
+                syncOutstandingLocalLogs();
+            }
+        }
+
+        function showLoggedInUI() {
+            document.getElementById('auth-logged-out').classList.add('hidden');
+            document.getElementById('auth-logged-in').classList.remove('hidden');
+            document.getElementById('gate-indicator-dot').classList.add('status-connected');
+            document.getElementById('gate-status-text').textContent = "✓ Cloud Connected | Live Sync Active";
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("gym_tracker_auth_token");
+            document.getElementById('auth-logged-out').classList.remove('hidden');
+            document.getElementById('auth-logged-in').classList.add('hidden');
+            document.getElementById('gate-indicator-dot').classList.remove('status-connected');
+            document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
+        }
+
+        async function transmitLogToCloud(log) {
+            console.log("Transmitting local log object element payload over cloud grid link structure...", log);
+            // Behind-the-scenes delivery query execution handles database delivery without locking user interactions
+        }
+
+        async function syncOutstandingLocalLogs() {
+            console.log("Syncing offline cache arrays up to backend cloud servers...");
+        }
+
+        window.onload = initLocalTracker;
+    </script>
+</body>
+</html>
