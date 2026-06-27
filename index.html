@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
-    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -257,7 +256,6 @@
 </head>
 <body>
 
-    <!-- Auth Login Interface -->
     <div id="login-interface" class="login-container">
         <h2>Gym Tracker Login</h2>
         <div class="login-form-group">
@@ -269,7 +267,6 @@
         <button class="btn-login" onclick="handleLogin()">Sign In</button>
     </div>
 
-    <!-- Protected Application Content -->
     <div id="app-content" class="hidden">
         <header>
             <div class="header-top">
@@ -413,123 +410,4 @@
             if (sessions.length > 0) {
                 currentSession = sessions[0];
             } else {
-                const { data: newSession, error: sessionError } = await supabaseClient
-                    .from('workout_sessions')
-                    .insert([{ user_id: currentUser.id }])
-                    .select();
-                if (sessionError) throw sessionError;
-                currentSession = newSession[0];
-            }
-        }
-
-        async function fetchExercises() {
-            const { data: exercises, error } = await supabaseClient
-                .from('exercises')
-                .select('*')
-                .order('exercise', { ascending: true });
-
-            if (error) throw error;
-            
-            allExercises = exercises;
-            renderMuscleFilters();
-            renderExerciseCards();
-        }
-
-        function renderMuscleFilters() {
-            const picker = document.getElementById('muscle-picker');
-            const groups = [...new Set(allExercises.map(e => e.muscle_group))].sort();
-            
-            picker.innerHTML = groups.map(group => `
-                <div>
-                    <input type="checkbox" id="muscle-${group}" class="muscle-chip" value="${group}" onchange="filterExercises()">
-                    <label for="muscle-${group}" class="muscle-label">${group}</label>
-                </div>
-            `).join('');
-        }
-
-        function renderExerciseCards() {
-            const grid = document.getElementById('exercise-grid');
-            
-            grid.innerHTML = allExercises.map(ex => {
-                const isCardio = ex.muscle_group === 'Cardio';
-                return `
-                    <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-name">${ex.exercise}</div>
-                        <div class="log-inputs">
-                            <div class="input-group">
-                                <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <div class="input-group ${isCardio ? 'hidden' : ''}">
-                                <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <button class="btn-log" onclick="logSet(${ex.id}, ${isCardio})">Log</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function filterExercises() {
-            const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
-            const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
-            
-            allExercises.forEach(ex => {
-                const card = document.getElementById(`ex-card-${ex.id}`);
-                if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
-                    card.classList.remove('hidden');
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-        }
-
-        async function logSet(exerciseId, isCardio) {
-            if (!currentSession) return;
-
-            const weightInput = document.getElementById(`input-w-${exerciseId}`);
-            const repsInput = document.getElementById(`input-r-${exerciseId}`);
-
-            const weight = parseFloat(weightInput.value) || 0;
-            const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
-
-            if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
-
-            const { error } = await supabaseClient
-                .from('set_logs')
-                .insert([{
-                    session_id: currentSession.id,
-                    exercise_id: exerciseId,
-                    weight: weight,
-                    reps: reps
-                }]);
-
-            if (error) {
-                console.error('Error logging set:', error);
-                alert('Failed to save log.');
-            } else {
-                if (!isCardio) repsInput.value = '';
-                weightInput.value = '';
-                await calculateTodayVolume();
-            }
-        }
-
-        async function calculateTodayVolume() {
-            if (!currentSession) return;
-
-            const { data: logs, error } = await supabaseClient
-                .from('set_logs')
-                .select('weight, reps')
-                .eq('session_id', currentSession.id);
-
-            if (error) return console.error('Error updating volume:', error);
-
-            const totalVolume = logs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
-            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
-        }
-
-        window.onload = checkSession;
-    </script>
-</body>
-</html>
+                const { data: newSession, error: sessionError } = await supabase
