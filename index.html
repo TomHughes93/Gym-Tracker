@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
+    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -38,15 +39,19 @@
             margin-bottom: 15px;
         }
 
-        h1 {
-            font-size: 1.4rem;
-            margin-bottom: 5px;
+        .user-selector-container {
+            margin-bottom: 15px;
         }
 
-        .user-greeting {
-            font-size: 0.9rem;
-            color: #666;
-            margin-bottom: 15px;
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #f8fafc;
+            color: var(--text-color);
+            font-weight: 600;
         }
 
         .stats-panel {
@@ -71,7 +76,7 @@
         }
 
         .filter-section {
-            margin-bottom: 15px;
+            margin-bottom: 5px;
         }
 
         label {
@@ -190,8 +195,12 @@
 <body>
 
     <header>
-        <h1 id="user-name">Loading...</h1>
-        <div class="user-greeting">Gym Tracker Dashboard</div>
+        <div class="user-selector-container">
+            <label for="user-select">Select Profile</label>
+            <select id="user-select" onchange="handleUserChange()">
+                <option value="">Loading profiles...</option>
+            </select>
+        </div>
 
         <div class="stats-panel">
             <div class="stats-title">Total Weight Moved Today</div>
@@ -209,43 +218,61 @@
     </main>
 
     <script>
-        // Pre-filled with your explicit project ID
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
+        const SUPABASE_ANON_KEY = 'your-anon-public-key';
 
-        // Fixed global execution namespace setup
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        let allUsers = [];
         let currentUser = null;
         let currentSession = null;
         let allExercises = [];
 
         async function init() {
             try {
-                await fetchOrCreateUser();
-                await fetchOrCreateSession();
+                await fetchUsers();
                 await fetchExercises();
-                await calculateTodayVolume();
             } catch (err) {
                 console.error('Initialization error:', err);
             }
         }
 
-        async function fetchOrCreateUser() {
-            const { data: users, error } = await supabaseClient.from('users').select('*').limit(1);
+        async function fetchUsers() {
+            const { data: users, error } = await supabaseClient.from('users').select('*').order('name', { ascending: true });
             if (error) throw error;
             
-            if (users.length > 0) {
-                currentUser = users[0];
-            } else {
-                const { data: newUser, error: createError } = await supabaseClient
-                    .from('users')
-                    .insert([{ name: 'Thomas Hughes', email: 'thomas@example.com' }])
-                    .select();
-                if (createError) throw createError;
-                currentUser = newUser[0];
+            allUsers = users;
+            const selectEl = document.getElementById('user-select');
+            
+            if (users.length === 0) {
+                selectEl.innerHTML = '<option value="">No profiles found. Add one in Supabase.</option>';
+                return;
             }
-            document.getElementById('user-name').textContent = currentUser.name;
+
+            selectEl.innerHTML = users.map(user => `
+                <option value="${user.id}">${user.name}</option>
+            `).join('');
+
+            // Default to the first user in the list initially
+            await selectUser(users[0].id);
+        }
+
+        async function handleUserChange() {
+            const selectedUserId = document.getElementById('user-select').value;
+            if (selectedUserId) {
+                await selectUser(selectedUserId);
+            }
+        }
+
+        async function selectUser(userId) {
+            currentUser = allUsers.find(u => u.id == userId);
+            currentSession = null;
+            document.getElementById('total-volume').textContent = '0 kg';
+            
+            if (currentUser) {
+                await fetchOrCreateSession();
+                await calculateTodayVolume();
+            }
         }
 
         async function fetchOrCreateSession() {
