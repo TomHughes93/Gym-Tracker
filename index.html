@@ -31,12 +31,75 @@
             padding-bottom: 50px;
         }
 
+        /* Login Container Styles */
+        .login-container {
+            max-width: 400px;
+            margin: 60px auto auto auto;
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            text-align: center;
+            color: #1e293b;
+        }
+
+        .login-form-group {
+            margin-bottom: 15px;
+        }
+
+        .login-form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: #f8fafc;
+        }
+
+        .btn-login {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        /* Dashboard Header Styles */
         header {
             background-color: var(--card-bg);
             padding: 15px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 15px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-logout {
+            background: none;
+            border: 1px solid #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
         }
 
         .user-selector-container {
@@ -194,32 +257,50 @@
 </head>
 <body>
 
-    <header>
-        <div class="user-selector-container">
-            <label for="user-select">Select Profile</label>
-            <select id="user-select" onchange="handleUserChange()">
-                <option value="">Loading profiles...</option>
-            </select>
+    <!-- Auth Login Interface -->
+    <div id="login-interface" class="login-container">
+        <h2>Gym Tracker Login</h2>
+        <div class="login-form-group">
+            <input type="email" id="login-email" placeholder="Email address">
         </div>
-
-        <div class="stats-panel">
-            <div class="stats-title">Total Weight Moved Today</div>
-            <div id="total-volume" class="stats-value">0 kg</div>
+        <div class="login-form-group">
+            <input type="password" id="login-password" placeholder="Password">
         </div>
+        <button class="btn-login" onclick="handleLogin()">Sign In</button>
+    </div>
 
-        <div class="filter-section">
-            <label>Select Muscle Groups</label>
-            <div id="muscle-picker" class="muscle-picker"></div>
-        </div>
-    </header>
+    <!-- Protected Application Content -->
+    <div id="app-content" class="hidden">
+        <header>
+            <div class="header-top">
+                <div class="user-selector-container" style="margin-bottom: 0; flex-grow: 1; margin-right: 15px;">
+                    <label for="user-select">Select Profile</label>
+                    <select id="user-select" onchange="handleUserChange()">
+                        <option value="">Loading profiles...</option>
+                    </select>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">Logout</button>
+            </div>
 
-    <main>
-        <div id="exercise-grid" class="exercise-grid"></div>
-    </main>
+            <div class="stats-panel">
+                <div class="stats-title">Total Weight Moved Today</div>
+                <div id="total-volume" class="stats-value">0 kg</div>
+            </div>
+
+            <div class="filter-section">
+                <label>Select Muscle Groups</label>
+                <div id="muscle-picker" class="muscle-picker"></div>
+            </div>
+        </header>
+
+        <main>
+            <div id="exercise-grid" class="exercise-grid"></div>
+        </main>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
-        const SUPABASE_ANON_KEY = 'your-anon-public-key';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -228,12 +309,53 @@
         let currentSession = null;
         let allExercises = [];
 
-        async function init() {
+        // Check auth status on launch
+        async function checkSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                showApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-interface').classList.remove('hidden');
+            document.getElementById('app-content').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('login-interface').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            initDashboard();
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if (!email || !password) return alert('Please enter both email and password.');
+
+            const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                alert(`Login failed: ${error.message}`);
+            } else {
+                showApp();
+            }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            showLogin();
+        }
+
+        async function initDashboard() {
             try {
                 await fetchUsers();
                 await fetchExercises();
             } catch (err) {
-                console.error('Initialization error:', err);
+                console.error('Dashboard init error:', err);
             }
         }
 
@@ -245,7 +367,7 @@
             const selectEl = document.getElementById('user-select');
             
             if (users.length === 0) {
-                selectEl.innerHTML = '<option value="">No profiles found. Add one in Supabase.</option>';
+                selectEl.innerHTML = '<option value="">No profiles found.</option>';
                 return;
             }
 
@@ -253,7 +375,6 @@
                 <option value="${user.id}">${user.name}</option>
             `).join('');
 
-            // Default to the first user in the list initially
             await selectUser(users[0].id);
         }
 
@@ -408,7 +529,7 @@
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
         }
 
-        window.onload = init;
+        window.onload = checkSession;
     </script>
 </body>
 </html>
