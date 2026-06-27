@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
+    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -12,6 +13,7 @@
             --text-color: #333333;
             --primary-color: #0070f3;
             --success-color: #22c55e;
+            --danger-color: #ef4444;
             --border-color: #e2e8f0;
         }
 
@@ -59,6 +61,26 @@
             background-color: #f8fafc;
             color: var(--text-color);
             font-weight: 600;
+        }
+
+        .btn-end-session {
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+            align-self: flex-end;
+            margin-bottom: 5px;
+        }
+
+        .btn-end-session:active {
+            background-color: #dc2626;
         }
 
         .stats-panel {
@@ -262,6 +284,7 @@
                         <option value="Swift">Swift</option>
                     </select>
                 </div>
+                <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
             </div>
 
             <div class="stats-panel">
@@ -279,6 +302,7 @@
             <div id="exercise-grid" class="exercise-grid"></div>
         </main>
 
+        <!-- Admin Database Gate Layout Wrapper -->
         <div class="db-gate-box">
             <div class="gate-title">
                 <span id="gate-indicator-dot" class="status-dot"></span>
@@ -292,7 +316,7 @@
             </div>
 
             <div id="auth-logged-in" class="hidden" style="text-align: center;">
-                <button type="button" class="btn-gate" style="background-color: #ef4444;" onclick="handleLogout()">Disconnect Cloud pipeline</button>
+                <button type="button" class="btn-gate" style="background-color: var(--danger-color);" onclick="handleLogout()">Disconnect Cloud pipeline</button>
             </div>
         </div>
     </div>
@@ -303,13 +327,12 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Seed list matching your cleared user profiles configuration
-        const athletesList = [
-            { id: "ginge-uuid-placeholder", name: "Ginge" },
-            { id: "swift-uuid-placeholder", name: "Swift" }
-        ];
+        // Map names to match database records directly
+        const dbUserMappings = {
+            "Ginge": { id: "ginge-uuid-placeholder", email: "ginge@example.com" },
+            "Swift": { id: "swift-uuid-placeholder", email: "swift@example.com" }
+        };
 
-        // Seed data for quick mapping layout construction
         const fallbackExercises = [
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
             { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
@@ -328,10 +351,9 @@
         let localLogsMemory = [];
 
         function initLocalTracker() {
-            // Load state parameters out of memory space
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
             localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
-            
+
             const savedAthlete = localStorage.getItem("gym_tracker_active_athlete");
             if (savedAthlete) {
                 activeAthlete = savedAthlete;
@@ -342,7 +364,6 @@
             renderExerciseCards();
             calculateLocalVolume();
 
-            // Auto-restore connection if token string exists
             if (localStorage.getItem("gym_tracker_auth_token")) {
                 showLoggedInUI();
             }
@@ -427,16 +448,10 @@
             localLogsMemory.push(newLogEntry);
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
 
-            // Clean form UI elements 
             if (!isCardio) repsInput.value = '';
             weightInput.value = '';
 
             calculateLocalVolume();
-            
-            // Push to Supabase only if connected
-            if (localStorage.getItem("gym_tracker_auth_token")) {
-                transmitLogToCloud(newLogEntry);
-            }
         }
 
         function calculateLocalVolume() {
@@ -449,7 +464,68 @@
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
         }
 
-        // --- Supabase Async Auth and Transmission Actions Pipeline ---
+        async function endAndSyncSession() {
+            if (localLogsMemory.length === 0) {
+                return alert("No data recorded in your current tracking session.");
+            }
+
+            if (!confirm(`Conclude current workout session and record logs for ${activeAthlete}?`)) return;
+
+            const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
+
+            if (!isCloudConnected) {
+                // Keep running locally if connection gate is not authenticated
+                localLogsMemory = [];
+                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+                calculateLocalVolume();
+                return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
+            }
+
+            try {
+                // 1. Fetch matching user database reference row link
+                const { data: userData, error: userErr } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('name', activeAthlete)
+                    .single();
+
+                if (userErr || !userData) throw new Error("Athlete profile row missing from backend database configuration.");
+
+                // 2. Generate unified master workout session log row
+                const { data: sessionData, error: sessionErr } = await supabaseClient
+                    .from('workout_sessions')
+                    .insert([{ user_id: userData.id }])
+                    .select()
+                    .single();
+
+                if (sessionErr || !sessionData) throw sessionErr;
+
+                // 3. Format offline cache records to insert into cloud database table
+                const cloudInsertPayload = localLogsMemory.map(log => ({
+                    session_id: sessionData.id,
+                    exercise_id: log.exercise_id,
+                    weight: log.weight,
+                    reps: log.reps
+                }));
+
+                const { error: logsErr } = await supabaseClient
+                    .from('set_logs')
+                    .insert(cloudInsertPayload);
+
+                if (logsErr) throw logsErr;
+
+                // Clean memory arrays upon successful submission
+                localLogsMemory = [];
+                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+                calculateLocalVolume();
+
+                alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
+
+            } catch (err) {
+                console.error("Cloud data delivery pipeline error:", err);
+                alert(`Sync failed: ${err.message || 'Network Timeout'}. Session data retained locally.`);
+            }
+        }
 
         async function handleLogin() {
             const email = document.getElementById('auth-email').value.trim();
@@ -467,7 +543,6 @@
             } else {
                 localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
                 showLoggedInUI();
-                syncOutstandingLocalLogs();
             }
         }
 
@@ -484,15 +559,6 @@
             document.getElementById('auth-logged-in').classList.add('hidden');
             document.getElementById('gate-indicator-dot').classList.remove('status-connected');
             document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
-        }
-
-        async function transmitLogToCloud(log) {
-            console.log("Transmitting local log object element payload over cloud grid link structure...", log);
-            // Behind-the-scenes delivery query execution handles database delivery without locking user interactions
-        }
-
-        async function syncOutstandingLocalLogs() {
-            console.log("Syncing offline cache arrays up to backend cloud servers...");
         }
 
         window.onload = initLocalTracker;
