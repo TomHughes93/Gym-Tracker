@@ -209,34 +209,40 @@
     </main>
 
     <script>
+        // Pre-filled with your explicit project ID
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Fixed global execution namespace setup
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentUser = null;
         let currentSession = null;
         let allExercises = [];
 
         async function init() {
-            await fetchOrCreateUser();
-            await fetchOrCreateSession();
-            await fetchExercises();
-            await calculateTodayVolume();
+            try {
+                await fetchOrCreateUser();
+                await fetchOrCreateSession();
+                await fetchExercises();
+                await calculateTodayVolume();
+            } catch (err) {
+                console.error('Initialization error:', err);
+            }
         }
 
         async function fetchOrCreateUser() {
-            const { data: users, error } = await supabase.from('users').select('*').limit(1);
-            if (error) return console.error('Error fetching user:', error);
+            const { data: users, error } = await supabaseClient.from('users').select('*').limit(1);
+            if (error) throw error;
             
             if (users.length > 0) {
                 currentUser = users[0];
             } else {
-                const { data: newUser, error: createError } = await supabase
+                const { data: newUser, error: createError } = await supabaseClient
                     .from('users')
                     .insert([{ name: 'Thomas Hughes', email: 'thomas@example.com' }])
                     .select();
-                if (createError) return console.error('Error creating user:', createError);
+                if (createError) throw createError;
                 currentUser = newUser[0];
             }
             document.getElementById('user-name').textContent = currentUser.name;
@@ -246,7 +252,7 @@
             if (!currentUser) return;
             const today = new Date().toISOString().split('T')[0];
             
-            const { data: sessions, error } = await supabase
+            const { data: sessions, error } = await supabaseClient
                 .from('workout_sessions')
                 .select('*')
                 .eq('user_id', currentUser.id)
@@ -254,27 +260,27 @@
                 .lte('date', `${today}T23:59:59Z`)
                 .limit(1);
 
-            if (error) return console.error('Error fetching session:', error);
+            if (error) throw error;
 
             if (sessions.length > 0) {
                 currentSession = sessions[0];
             } else {
-                const { data: newSession, error: sessionError } = await supabase
+                const { data: newSession, error: sessionError } = await supabaseClient
                     .from('workout_sessions')
                     .insert([{ user_id: currentUser.id }])
                     .select();
-                if (sessionError) return console.error('Error creating session:', sessionError);
+                if (sessionError) throw sessionError;
                 currentSession = newSession[0];
             }
         }
 
         async function fetchExercises() {
-            const { data: exercises, error } = await supabase
+            const { data: exercises, error } = await supabaseClient
                 .from('exercises')
                 .select('*')
                 .order('exercise', { ascending: true });
 
-            if (error) return console.error('Error fetching exercises:', error);
+            if (error) throw error;
             
             allExercises = exercises;
             renderMuscleFilters();
@@ -302,3 +308,80 @@
                     <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
                         <div class="exercise-name">${ex.exercise}</div>
                         <div class="log-inputs">
+                            <div class="input-group">
+                                <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
+                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric">
+                            </div>
+                            <div class="input-group ${isCardio ? 'hidden' : ''}">
+                                <label>Reps</label>
+                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
+                            </div>
+                            <button class="btn-log" onclick="logSet(${ex.id}, ${isCardio})">Log</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterExercises() {
+            const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
+            const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
+            
+            allExercises.forEach(ex => {
+                const card = document.getElementById(`ex-card-${ex.id}`);
+                if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        async function logSet(exerciseId, isCardio) {
+            if (!currentSession) return;
+
+            const weightInput = document.getElementById(`input-w-${exerciseId}`);
+            const repsInput = document.getElementById(`input-r-${exerciseId}`);
+
+            const weight = parseFloat(weightInput.value) || 0;
+            const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
+
+            if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
+
+            const { error } = await supabaseClient
+                .from('set_logs')
+                .insert([{
+                    session_id: currentSession.id,
+                    exercise_id: exerciseId,
+                    weight: weight,
+                    reps: reps
+                }]);
+
+            if (error) {
+                console.error('Error logging set:', error);
+                alert('Failed to save log.');
+            } else {
+                if (!isCardio) repsInput.value = '';
+                weightInput.value = '';
+                await calculateTodayVolume();
+            }
+        }
+
+        async function calculateTodayVolume() {
+            if (!currentSession) return;
+
+            const { data: logs, error } = await supabaseClient
+                .from('set_logs')
+                .select('weight, reps')
+                .eq('session_id', currentSession.id);
+
+            if (error) return console.error('Error updating volume:', error);
+
+            const totalVolume = logs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
+            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
