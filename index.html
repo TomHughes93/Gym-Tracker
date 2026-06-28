@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
-    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Include Chart.js Library for Performance Data -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -117,6 +115,9 @@
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .stats-title {
@@ -130,6 +131,54 @@
             font-size: 1.8rem;
             font-weight: bold;
             margin-top: 5px;
+        }
+
+        .btn-undo-header {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .btn-undo-header:active {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 1RM Calculator Block Styles */
+        .calc-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom: 15px;
+        }
+
+        .calc-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .calc-output-box {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .calc-output-val {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-top: 4px;
         }
 
         .filter-section {
@@ -362,11 +411,31 @@
             </div>
         </header>
 
-        <!-- View 1: Active Entry Track Grid -->
         <div id="panel-track">
             <div class="stats-panel">
-                <div class="stats-title">Today's Local Session Volume</div>
-                <div id="total-volume" class="stats-value">0 kg</div>
+                <div>
+                    <div class="stats-title">Today's Local Session Volume</div>
+                    <div id="total-volume" class="stats-value">0 kg</div>
+                </div>
+                <button type="button" id="undo-btn" class="btn-undo-header" style="opacity: 0.4; pointer-events: none;" onclick="undoLastSetLocal()">⇐ Undo Set</button>
+            </div>
+
+            <div class="calc-card">
+                <div class="chart-title" style="margin-bottom: 5px; color: #1e293b;">One-Rep Max Estimator</div>
+                <div class="calc-row">
+                    <div class="input-group">
+                        <label>Weight (kg)</label>
+                        <input type="number" id="calc-weight" placeholder="0" inputmode="numeric" oninput="calculateOneRepMax()">
+                    </div>
+                    <div class="input-group">
+                        <label>Reps Pressed</label>
+                        <input type="number" id="calc-reps" placeholder="0" inputmode="numeric" oninput="calculateOneRepMax()">
+                    </div>
+                </div>
+                <div class="calc-output-box">
+                    <div class="stats-title" style="color: #64748b;">Estimated Maximum Strength Target</div>
+                    <div id="calc-output-display" class="calc-output-val">0 kg</div>
+                </div>
             </div>
 
             <div class="filter-section" style="margin-bottom: 15px;">
@@ -379,7 +448,6 @@
             </main>
         </div>
 
-        <!-- View 2: Adaptive Analytics Panel Layout -->
         <div id="panel-metrics" class="metrics-panel hidden">
             <div class="metrics-dropdown-group">
                 <div>
@@ -410,7 +478,6 @@
             </div>
         </div>
 
-        <!-- Admin Database Gate Layout Wrapper -->
         <div class="db-gate-box">
             <div class="gate-title">
                 <span id="gate-indicator-dot" class="status-dot"></span>
@@ -533,6 +600,7 @@
             renderExerciseCards();
             calculateLocalVolume();
             initMetricsDropdowns();
+            updateUndoButtonUI();
 
             if (localStorage.getItem("gym_tracker_auth_token")) {
                 showLoggedInUI();
@@ -543,6 +611,7 @@
             activeAthlete = document.getElementById("user-select").value;
             localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
             calculateLocalVolume();
+            updateUndoButtonUI();
             
             if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
                 loadPerformanceCharts();
@@ -561,6 +630,55 @@
                 document.getElementById('panel-metrics').classList.remove('hidden');
                 loadPerformanceCharts();
             }
+        }
+
+        // 1RM Estimation Formula Logic
+        function calculateOneRepMax() {
+            const weight = parseFloat(document.getElementById("calc-weight").value) || 0;
+            const reps = parseInt(document.getElementById("calc-reps").value) || 0;
+            const output = document.getElementById("calc-output-display");
+
+            if (weight <= 0 || reps <= 0) {
+                output.textContent = "0 kg";
+                return;
+            }
+
+            // Epley Standard Formula Engine Execution
+            const oneRepMaxEst = Math.round(weight * (1 + (reps / 30)));
+            output.textContent = `${oneRepMaxEst.toLocaleString()} kg`;
+        }
+
+        function updateUndoButtonUI() {
+            const undoBtn = document.getElementById("undo-btn");
+            const hasLogs = localLogsMemory.some(log => log.athlete === activeAthlete);
+
+            if (hasLogs) {
+                undoBtn.style.opacity = "1";
+                undoBtn.style.pointerEvents = "auto";
+            } else {
+                undoBtn.style.opacity = "0.4";
+                undoBtn.style.pointerEvents = "none";
+            }
+        }
+
+        function undoLastSetLocal() {
+            // Find the index of the last set logged by the active athlete
+            let lastIndex = -1;
+            for (let i = localLogsMemory.length - 1; i >= 0; i--) {
+                if (localLogsMemory[i].athlete === activeAthlete) {
+                    lastIndex = i;
+                    break;
+                }
+            }
+
+            if (lastIndex === -1) return;
+
+            const removedLog = localLogsMemory.splice(lastIndex, 1)[0];
+            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+
+            calculateLocalVolume();
+            updateUndoButtonUI();
+            alert(`Undone: Removed last entry row tracking.`);
         }
 
         function initMetricsDropdowns() {
@@ -596,7 +714,6 @@
             const selectedExerciseId = document.getElementById("chart-exercise-select").value;
             
             try {
-                // 1. Fetch data for the active athlete profile
                 const { data: userData } = await supabaseClient
                     .from('users')
                     .select('id')
@@ -608,7 +725,6 @@
                     return;
                 }
 
-                // 2. Fetch workout session layout records
                 const { data: sessions } = await supabaseClient
                     .from('workout_sessions')
                     .select('id, date')
@@ -622,7 +738,6 @@
 
                 const sessionIds = sessions.map(s => s.id);
 
-                // 3. Query matching sub logs block array elements
                 let logsQuery = supabaseClient
                     .from('set_logs')
                     .select('session_id, exercise_id, weight, reps')
@@ -645,10 +760,8 @@
             document.getElementById("metrics-loader").classList.add("hidden");
             document.getElementById("metrics-charts-wrapper").classList.remove("hidden");
 
-            // Clear old context chart maps completely to prevent redraw conflicts
             Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
 
-            // Process Total Volume Over Time Metrics
             const volumeMap = {};
             sessions.forEach(s => {
                 const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -670,7 +783,6 @@
                 ? "Exercise Specific Workload Output Load (kg)"
                 : "Total Master Session Volume Load Over Time (kg)";
 
-            // Chart 1: Volume Progression Timeline Panel
             activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
                 type: 'line',
                 data: {
@@ -687,7 +799,6 @@
                 options: { responsive: true, scales: { y: { beginAtZero: true } } }
             });
 
-            // Process Adaptive High/Peak Metrics Track
             const exercisePeakMap = {};
             logs.forEach(l => {
                 if (!exercisePeakMap[l.session_id] || l.weight > exercisePeakMap[l.session_id]) {
@@ -710,7 +821,6 @@
                 ? "Peak Weight Progression Index (kg)"
                 : "Heaviest Lift Selected Per Session (kg)";
 
-            // Chart 2: Adaptive Maximum Load Index Grid
             activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
                 type: 'bar',
                 data: {
@@ -802,6 +912,7 @@
             weightInput.value = '';
 
             calculateLocalVolume();
+            updateUndoButtonUI();
         }
 
         function calculateLocalVolume() {
@@ -815,7 +926,9 @@
         }
 
         async function endAndSyncSession() {
-            if (localLogsMemory.length === 0) {
+            const profileLogs = localLogsMemory.filter(log => log.athlete === activeAthlete);
+
+            if (profileLogs.length === 0) {
                 return alert("No data recorded in your current tracking session.");
             }
 
@@ -824,9 +937,11 @@
             const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
 
             if (!isCloudConnected) {
-                localLogsMemory = [];
+                // Remove only logs belonging to this specific athlete
+                localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 calculateLocalVolume();
+                updateUndoButtonUI();
                 return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
             }
 
@@ -847,7 +962,7 @@
 
                 if (sessionErr || !sessionData) throw sessionErr;
 
-                const cloudInsertPayload = localLogsMemory.map(log => ({
+                const cloudInsertPayload = profileLogs.map(log => ({
                     session_id: sessionData.id,
                     exercise_id: log.exercise_id,
                     weight: log.weight,
@@ -860,9 +975,12 @@
 
                 if (logsErr) throw logsErr;
 
-                localLogsMemory = [];
+                // Strip synced athlete logs from memory map cache
+                localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+                
                 calculateLocalVolume();
+                updateUndoButtonUI();
 
                 alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
 
