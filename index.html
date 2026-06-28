@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
+    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Include Chart.js Library for Performance Data -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -36,7 +39,7 @@
             padding: 15px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .header-top {
@@ -60,6 +63,7 @@
             background-color: #f8fafc;
             color: var(--text-color);
             font-weight: 600;
+            height: 48px;
         }
 
         .btn-end-session {
@@ -74,12 +78,37 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-            align-self: flex-end;
-            margin-bottom: 5px;
+            height: 48px;
         }
 
         .btn-end-session:active {
             background-color: #dc2626;
+        }
+
+        .tab-menu {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 15px;
+        }
+
+        .tab-btn {
+            background-color: #e2e8f0;
+            color: #4a5568;
+            padding: 12px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            flex: 1;
+            border: none;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tab-btn.active {
+            background-color: var(--primary-color);
+            color: white;
         }
 
         .stats-panel {
@@ -217,6 +246,47 @@
             opacity: 0.9;
         }
 
+        /* Metrics Tab Layout Styles */
+        .metrics-panel {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .chart-box {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .metrics-dropdown-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .metrics-loading {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
         /* Database Control UI Section */
         .db-gate-box {
             margin-top: 20px;
@@ -286,21 +356,61 @@
                 <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
             </div>
 
+            <div class="tab-menu">
+                <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Tracking Cards</button>
+                <button class="tab-btn" id="tab-metrics" onclick="switchTab('metrics')">Performance Analytics</button>
+            </div>
+        </header>
+
+        <!-- View 1: Active Entry Track Grid -->
+        <div id="panel-track">
             <div class="stats-panel">
                 <div class="stats-title">Today's Local Session Volume</div>
                 <div id="total-volume" class="stats-value">0 kg</div>
             </div>
 
-            <div class="filter-section">
+            <div class="filter-section" style="margin-bottom: 15px;">
                 <label>Select Muscle Groups</label>
                 <div id="muscle-picker" class="muscle-picker"></div>
             </div>
-        </header>
 
-        <main>
-            <div id="exercise-grid" class="exercise-grid"></div>
-        </main>
+            <main>
+                <div id="exercise-grid" class="exercise-grid"></div>
+            </main>
+        </div>
 
+        <!-- View 2: Adaptive Analytics Panel Layout -->
+        <div id="panel-metrics" class="metrics-panel hidden">
+            <div class="metrics-dropdown-group">
+                <div>
+                    <label for="chart-muscle-select">Muscle Category</label>
+                    <select id="chart-muscle-select" onchange="populateChartExerciseDropdown()">
+                        <option value="">-- All --</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="chart-exercise-select">Specific Movement</label>
+                    <select id="chart-exercise-select" onchange="loadPerformanceCharts()">
+                        <option value="">-- Select --</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="metrics-loader" class="metrics-loading hidden">Pulling historical volume statistics from database...</div>
+
+            <div id="metrics-charts-wrapper">
+                <div class="chart-box">
+                    <div class="chart-title" id="volume-chart-title">Total Session Volume Load Over Time</div>
+                    <canvas id="chart-volume" height="180"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title" id="adaptive-chart-title">Exercise Weight Progression Timeline</div>
+                    <canvas id="chart-progression" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Database Gate Layout Wrapper -->
         <div class="db-gate-box">
             <div class="gate-title">
                 <span id="gate-indicator-dot" class="status-dot"></span>
@@ -325,7 +435,6 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Your complete exercise data library mapped directly to database IDs
         const fallbackExercises = [
             // Back
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
@@ -408,6 +517,7 @@
 
         let activeAthlete = "Ginge";
         let localLogsMemory = [];
+        let activeCharts = {};
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
@@ -422,6 +532,7 @@
             renderMuscleFilters();
             renderExerciseCards();
             calculateLocalVolume();
+            initMetricsDropdowns();
 
             if (localStorage.getItem("gym_tracker_auth_token")) {
                 showLoggedInUI();
@@ -432,6 +543,186 @@
             activeAthlete = document.getElementById("user-select").value;
             localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
             calculateLocalVolume();
+            
+            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
+                loadPerformanceCharts();
+            }
+        }
+
+        function switchTab(targetTab) {
+            document.getElementById('tab-track').className = 'tab-btn' + (targetTab === 'track' ? ' active' : '');
+            document.getElementById('tab-metrics').className = 'tab-btn' + (targetTab === 'metrics' ? ' active' : '');
+            
+            if (targetTab === 'track') {
+                document.getElementById('panel-track').classList.remove('hidden');
+                document.getElementById('panel-metrics').classList.add('hidden');
+            } else {
+                document.getElementById('panel-track').classList.add('hidden');
+                document.getElementById('panel-metrics').classList.remove('hidden');
+                loadPerformanceCharts();
+            }
+        }
+
+        function initMetricsDropdowns() {
+            const muscleSelect = document.getElementById("chart-muscle-select");
+            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
+            
+            muscleSelect.innerHTML = '<option value="">-- All --</option>' + 
+                groups.map(g => `<option value="${g}">${g}</option>`).join('');
+                
+            populateChartExerciseDropdown();
+        }
+
+        function populateChartExerciseDropdown() {
+            const chosenMuscle = document.getElementById("chart-muscle-select").value;
+            const exSelect = document.getElementById("chart-exercise-select");
+            
+            const filtered = chosenMuscle 
+                ? fallbackExercises.filter(e => e.muscle_group === chosenMuscle)
+                : fallbackExercises;
+                
+            exSelect.innerHTML = '<option value="">-- Select Exercise --</option>' +
+                filtered.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
+                
+            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
+                loadPerformanceCharts();
+            }
+        }
+
+        async function loadPerformanceCharts() {
+            document.getElementById("metrics-loader").classList.remove("hidden");
+            document.getElementById("metrics-charts-wrapper").classList.add("hidden");
+
+            const selectedExerciseId = document.getElementById("chart-exercise-select").value;
+            
+            try {
+                // 1. Fetch data for the active athlete profile
+                const { data: userData } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('name', activeAthlete)
+                    .single();
+
+                if (!userData) {
+                    document.getElementById("metrics-loader").textContent = "Profile sync data entry required to load cloud metrics.";
+                    return;
+                }
+
+                // 2. Fetch workout session layout records
+                const { data: sessions } = await supabaseClient
+                    .from('workout_sessions')
+                    .select('id, date')
+                    .eq('user_id', userData.id)
+                    .order('date', { ascending: true });
+
+                if (!sessions || sessions.length === 0) {
+                    document.getElementById("metrics-loader").textContent = "No logged historical milestones found for this athlete profile.";
+                    return;
+                }
+
+                const sessionIds = sessions.map(s => s.id);
+
+                // 3. Query matching sub logs block array elements
+                let logsQuery = supabaseClient
+                    .from('set_logs')
+                    .select('session_id, exercise_id, weight, reps')
+                    .in('session_id', sessionIds);
+
+                if (selectedExerciseId) {
+                    logsQuery = logsQuery.eq('exercise_id', selectedExerciseId);
+                }
+
+                const { data: logs } = await logsQuery;
+                renderAnalyticsCharts(sessions, logs || [], selectedExerciseId);
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById("metrics-loader").textContent = "Error loading performance history visualization panels.";
+            }
+        }
+
+        function renderAnalyticsCharts(sessions, logs, selectedExerciseId) {
+            document.getElementById("metrics-loader").classList.add("hidden");
+            document.getElementById("metrics-charts-wrapper").classList.remove("hidden");
+
+            // Clear old context chart maps completely to prevent redraw conflicts
+            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
+
+            // Process Total Volume Over Time Metrics
+            const volumeMap = {};
+            sessions.forEach(s => {
+                const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                volumeMap[s.id] = { label: dateLabel, volume: 0, hasData: false };
+            });
+
+            logs.forEach(l => {
+                if (volumeMap[l.session_id]) {
+                    volumeMap[l.session_id].volume += (l.weight * l.reps);
+                    volumeMap[l.session_id].hasData = true;
+                }
+            });
+
+            const sessionDataPoints = Object.values(volumeMap).filter(pt => selectedExerciseId ? pt.hasData : true);
+            const volumeLabels = sessionDataPoints.map(pt => pt.label);
+            const volumeValues = sessionDataPoints.map(pt => pt.volume);
+
+            document.getElementById("volume-chart-title").textContent = selectedExerciseId 
+                ? "Exercise Specific Workload Output Load (kg)"
+                : "Total Master Session Volume Load Over Time (kg)";
+
+            // Chart 1: Volume Progression Timeline Panel
+            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
+                type: 'line',
+                data: {
+                    labels: volumeLabels,
+                    datasets: [{
+                        label: activeAthlete,
+                        data: volumeValues,
+                        borderColor: '#0070f3',
+                        backgroundColor: 'rgba(0, 112, 243, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            // Process Adaptive High/Peak Metrics Track
+            const exercisePeakMap = {};
+            logs.forEach(l => {
+                if (!exercisePeakMap[l.session_id] || l.weight > exercisePeakMap[l.session_id]) {
+                    exercisePeakMap[l.session_id] = l.weight;
+                }
+            });
+
+            const progressionLabels = [];
+            const progressionValues = [];
+
+            sessions.forEach(s => {
+                if (exercisePeakMap[s.id] !== undefined) {
+                    const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    progressionLabels.push(dateLabel);
+                    progressionValues.push(exercisePeakMap[s.id]);
+                }
+            });
+
+            document.getElementById("adaptive-chart-title").textContent = selectedExerciseId
+                ? "Peak Weight Progression Index (kg)"
+                : "Heaviest Lift Selected Per Session (kg)";
+
+            // Chart 2: Adaptive Maximum Load Index Grid
+            activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
+                type: 'bar',
+                data: {
+                    labels: progressionLabels,
+                    datasets: [{
+                        label: 'Max Weight Pressed',
+                        data: progressionValues,
+                        backgroundColor: '#22c55e'
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
         }
 
         function renderMuscleFilters() {
@@ -575,6 +866,10 @@
 
                 alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
 
+                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
+                    loadPerformanceCharts();
+                }
+
             } catch (err) {
                 console.error("Cloud data delivery pipeline error:", err);
                 alert(`Sync failed: ${err.message || 'Network Timeout'}. Session data retained locally.`);
@@ -597,6 +892,9 @@
             } else {
                 localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
                 showLoggedInUI();
+                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
+                    loadPerformanceCharts();
+                }
             }
         }
 
@@ -613,6 +911,7 @@
             document.getElementById('auth-logged-in').classList.add('hidden');
             document.getElementById('gate-indicator-dot').classList.remove('status-connected');
             document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
+            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
         }
 
         window.onload = initLocalTracker;
