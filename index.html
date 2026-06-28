@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
+    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Include Chart.js Library for Performance Data -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -149,38 +151,6 @@
             background-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* 1RM Calculator Block Styles */
-        .calc-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-            margin-bottom: 15px;
-        }
-
-        .calc-row {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .calc-output-box {
-            background-color: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            text-align: center;
-            margin-top: 12px;
-        }
-
-        .calc-output-val {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-top: 4px;
-        }
-
         .filter-section {
             margin-bottom: 5px;
         }
@@ -237,11 +207,31 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
 
+        .exercise-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
         .exercise-name {
             font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 12px;
             color: #1e293b;
+            padding-right: 10px;
+        }
+
+        .live-max-badge {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            background-color: rgba(0, 112, 243, 0.08);
+            border: 1px solid rgba(0, 112, 243, 0.15);
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .log-inputs {
@@ -411,6 +401,7 @@
             </div>
         </header>
 
+        <!-- View 1: Active Entry Track Grid -->
         <div id="panel-track">
             <div class="stats-panel">
                 <div>
@@ -418,24 +409,6 @@
                     <div id="total-volume" class="stats-value">0 kg</div>
                 </div>
                 <button type="button" id="undo-btn" class="btn-undo-header" style="opacity: 0.4; pointer-events: none;" onclick="undoLastSetLocal()">⇐ Undo Set</button>
-            </div>
-
-            <div class="calc-card">
-                <div class="chart-title" style="margin-bottom: 5px; color: #1e293b;">One-Rep Max Estimator</div>
-                <div class="calc-row">
-                    <div class="input-group">
-                        <label>Weight (kg)</label>
-                        <input type="number" id="calc-weight" placeholder="0" inputmode="numeric" oninput="calculateOneRepMax()">
-                    </div>
-                    <div class="input-group">
-                        <label>Reps Pressed</label>
-                        <input type="number" id="calc-reps" placeholder="0" inputmode="numeric" oninput="calculateOneRepMax()">
-                    </div>
-                </div>
-                <div class="calc-output-box">
-                    <div class="stats-title" style="color: #64748b;">Estimated Maximum Strength Target</div>
-                    <div id="calc-output-display" class="calc-output-val">0 kg</div>
-                </div>
             </div>
 
             <div class="filter-section" style="margin-bottom: 15px;">
@@ -448,6 +421,7 @@
             </main>
         </div>
 
+        <!-- View 2: Adaptive Analytics Panel Layout -->
         <div id="panel-metrics" class="metrics-panel hidden">
             <div class="metrics-dropdown-group">
                 <div>
@@ -478,6 +452,7 @@
             </div>
         </div>
 
+        <!-- Admin Database Gate Layout Wrapper -->
         <div class="db-gate-box">
             <div class="gate-title">
                 <span id="gate-indicator-dot" class="status-dot"></span>
@@ -527,7 +502,7 @@
             // Chest
             { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
             { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
-            { id: 20, exercise: "Flat Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: 20, exercise: "Flat Bench Hunt (Plate Loaded)", muscle_group: "Chest" },
             { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
             { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
             { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
@@ -632,20 +607,23 @@
             }
         }
 
-        // 1RM Estimation Formula Logic
-        function calculateOneRepMax() {
-            const weight = parseFloat(document.getElementById("calc-weight").value) || 0;
-            const reps = parseInt(document.getElementById("calc-reps").value) || 0;
-            const output = document.getElementById("calc-output-display");
+        // Integrated Live-Card 1RM Calculation Logic
+        function liveCalculateMaxBadge(exerciseId, isCardio) {
+            const badge = document.getElementById(`max-badge-${exerciseId}`);
+            if (isCardio) return;
 
-            if (weight <= 0 || reps <= 0) {
-                output.textContent = "0 kg";
+            const wInput = parseFloat(document.getElementById(`input-w-${exerciseId}`).value) || 0;
+            const rInput = parseInt(document.getElementById(`input-r-${exerciseId}`).value) || 0;
+
+            if (wInput <= 0 || rInput <= 0) {
+                badge.classList.add('hidden');
                 return;
             }
 
-            // Epley Standard Formula Engine Execution
-            const oneRepMaxEst = Math.round(weight * (1 + (reps / 30)));
-            output.textContent = `${oneRepMaxEst.toLocaleString()} kg`;
+            // Epley Calculation Execution
+            const calculatedMax = Math.round(wInput * (1 + (rInput / 30)));
+            badge.textContent = `Est. 1RM: ${calculatedMax}kg`;
+            badge.classList.remove('hidden');
         }
 
         function updateUndoButtonUI() {
@@ -662,7 +640,6 @@
         }
 
         function undoLastSetLocal() {
-            // Find the index of the last set logged by the active athlete
             let lastIndex = -1;
             for (let i = localLogsMemory.length - 1; i >= 0; i--) {
                 if (localLogsMemory[i].athlete === activeAthlete) {
@@ -673,7 +650,7 @@
 
             if (lastIndex === -1) return;
 
-            const removedLog = localLogsMemory.splice(lastIndex, 1)[0];
+            localLogsMemory.splice(lastIndex, 1);
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
 
             calculateLocalVolume();
@@ -854,15 +831,18 @@
                 const isCardio = ex.muscle_group === 'Cardio';
                 return `
                     <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-name">${ex.exercise}</div>
+                        <div class="exercise-header-row">
+                            <div class="exercise-name">${ex.exercise}</div>
+                            <div id="max-badge-${ex.id}" class="live-max-badge hidden"></div>
+                        </div>
                         <div class="log-inputs">
                             <div class="input-group">
                                 <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric">
+                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge(${ex.id}, ${isCardio})">
                             </div>
                             <div class="input-group ${isCardio ? 'hidden' : ''}">
                                 <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
+                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge(${ex.id}, ${isCardio})">
                             </div>
                             <button class="btn-log" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
                         </div>
@@ -888,6 +868,7 @@
         function logSetLocal(exerciseId, isCardio) {
             const weightInput = document.getElementById(`input-w-${exerciseId}`);
             const repsInput = document.getElementById(`input-r-${exerciseId}`);
+            const badge = document.getElementById(`max-badge-${exerciseId}`);
 
             const weight = parseFloat(weightInput.value) || 0;
             const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
@@ -910,6 +891,7 @@
 
             if (!isCardio) repsInput.value = '';
             weightInput.value = '';
+            badge.classList.add('hidden');
 
             calculateLocalVolume();
             updateUndoButtonUI();
@@ -937,7 +919,6 @@
             const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
 
             if (!isCloudConnected) {
-                // Remove only logs belonging to this specific athlete
                 localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 calculateLocalVolume();
@@ -954,7 +935,7 @@
 
                 if (userErr || !userData) throw new Error("Athlete profile row missing from backend database configuration.");
 
-                const { data: sessionData, error: sessionErr } = await supabaseClient
+                const { data: sessionData, error: sessionErr = null } = await supabaseClient
                     .from('workout_sessions')
                     .insert([{ user_id: userData.id }])
                     .select()
@@ -975,7 +956,6 @@
 
                 if (logsErr) throw logsErr;
 
-                // Strip synced athlete logs from memory map cache
                 localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 
