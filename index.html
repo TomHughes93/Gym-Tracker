@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
-    <!-- Include Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -302,7 +301,6 @@
             <div id="exercise-grid" class="exercise-grid"></div>
         </main>
 
-        <!-- Admin Database Gate Layout Wrapper -->
         <div class="db-gate-box">
             <div class="gate-title">
                 <span id="gate-indicator-dot" class="status-dot"></span>
@@ -327,24 +325,85 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Map names to match database records directly
-        const dbUserMappings = {
-            "Ginge": { id: "ginge-uuid-placeholder", email: "ginge@example.com" },
-            "Swift": { id: "swift-uuid-placeholder", email: "swift@example.com" }
-        };
-
+        // Your complete exercise data library mapped directly to database IDs
         const fallbackExercises = [
+            // Back
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
             { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
             { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" },
+            { id: 4, exercise: "Cable Row (Wide)", muscle_group: "Back" },
+            { id: 5, exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" },
+            { id: 6, exercise: "T-Bar Row (Narrow)", muscle_group: "Back" },
+            { id: 7, exercise: "T-Bar Row (Wide)", muscle_group: "Back" },
+            { id: 8, exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
+            { id: 9, exercise: "Machine Row (Narrow)", muscle_group: "Back" },
+            { id: 10, exercise: "Machine Row (Wide)", muscle_group: "Back" },
+
+            // Biceps
             { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
             { id: 12, exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" },
+            { id: 13, exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
+            { id: 14, exercise: "Standing Bar Curl", muscle_group: "Biceps" },
+            { id: 15, exercise: "Cable Rope Curl", muscle_group: "Biceps" },
+            { id: 16, exercise: "Cable Bar Curl", muscle_group: "Biceps" },
+            { id: 17, exercise: "Cable Handle Curl", muscle_group: "Biceps" },
+
+            // Chest
             { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
             { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
+            { id: 20, exercise: "Flat Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: 24, exercise: "Incline Bench Press (Cable)", muscle_group: "Chest" },
+            { id: 25, exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: 26, exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: 27, exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: 28, exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: 29, exercise: "Pec Dec", muscle_group: "Chest" },
+            { id: 30, exercise: "Cable Flys (High to Low)", muscle_group: "Chest" },
+            { id: 31, exercise: "Cable Flys (Low to High)", muscle_group: "Chest" },
+            { id: 32, exercise: "Dips (Weighted)", muscle_group: "Chest" },
+
+            // Triceps
             { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" },
+            { id: 34, exercise: "Extension Machine", muscle_group: "Triceps" },
+            { id: 35, exercise: "Rope Extension", muscle_group: "Triceps" },
+            { id: 36, exercise: "Handle Pull Down", muscle_group: "Triceps" },
+            { id: 37, exercise: "Bar Pull Down", muscle_group: "Triceps" },
+            { id: 38, exercise: "Skull Crushers", muscle_group: "Triceps" },
+            { id: 39, exercise: "Overhead Extension", muscle_group: "Triceps" },
+            { id: 40, exercise: "V-Bar Push Down", muscle_group: "Triceps" },
+
+            // Shoulders
             { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
+            { id: 42, exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
+            { id: 43, exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
+            { id: 44, exercise: "Overhead Press (Cable)", muscle_group: "Shoulders" },
+            { id: 45, exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
+            { id: 46, exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
+            { id: 47, exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
+            { id: 48, exercise: "Front Raise (Plate)", muscle_group: "Shoulders" },
+            { id: 49, exercise: "Front Raise (Cable)", muscle_group: "Shoulders" },
+            { id: 50, exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
+            { id: 51, exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
+            { id: 52, exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
+
+            // Legs
             { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
-            { id: 62, exercise: "Treadmill", muscle_group: "Cardio" }
+            { id: 54, exercise: "Standing Calf Raise", muscle_group: "Legs" },
+            { id: 55, exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" },
+            { id: 56, exercise: "Quad Extension (Cable)", muscle_group: "Legs" },
+            { id: 57, exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: 58, exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: 59, exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
+            { id: 60, exercise: "Leg Press (Machine)", muscle_group: "Legs" },
+            { id: 61, exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
+
+            // Cardio
+            { id: 62, exercise: "Treadmill", muscle_group: "Cardio" },
+            { id: 63, exercise: "Spinning Bike", muscle_group: "Cardio" },
+            { id: 64, exercise: "Seated Bike", muscle_group: "Cardio" }
         ];
 
         let activeAthlete = "Ginge";
@@ -474,7 +533,6 @@
             const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
 
             if (!isCloudConnected) {
-                // Keep running locally if connection gate is not authenticated
                 localLogsMemory = [];
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 calculateLocalVolume();
@@ -482,7 +540,6 @@
             }
 
             try {
-                // 1. Fetch matching user database reference row link
                 const { data: userData, error: userErr } = await supabaseClient
                     .from('users')
                     .select('id')
@@ -491,7 +548,6 @@
 
                 if (userErr || !userData) throw new Error("Athlete profile row missing from backend database configuration.");
 
-                // 2. Generate unified master workout session log row
                 const { data: sessionData, error: sessionErr } = await supabaseClient
                     .from('workout_sessions')
                     .insert([{ user_id: userData.id }])
@@ -500,7 +556,6 @@
 
                 if (sessionErr || !sessionData) throw sessionErr;
 
-                // 3. Format offline cache records to insert into cloud database table
                 const cloudInsertPayload = localLogsMemory.map(log => ({
                     session_id: sessionData.id,
                     exercise_id: log.exercise_id,
@@ -514,7 +569,6 @@
 
                 if (logsErr) throw logsErr;
 
-                // Clean memory arrays upon successful submission
                 localLogsMemory = [];
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 calculateLocalVolume();
