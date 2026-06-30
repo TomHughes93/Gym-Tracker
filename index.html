@@ -113,24 +113,31 @@
             background: linear-gradient(135deg, #1e293b, #0f172a);
             color: white;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stats-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
         }
 
         .stats-title {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             opacity: 0.8;
         }
 
         .stats-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
-            margin-top: 5px;
+            margin-top: 2px;
         }
 
         .btn-undo-header {
@@ -209,7 +216,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .exercise-name {
@@ -217,6 +224,12 @@
             font-weight: 600;
             color: #1e293b;
             padding-right: 10px;
+        }
+
+        .set-counter-badge {
+            color: var(--primary-color);
+            font-weight: 800;
+            margin-left: 6px;
         }
 
         .live-max-badge {
@@ -230,6 +243,17 @@
             white-space: nowrap;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        .last-set-banner {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background-color: #f8fafc;
+            padding: 6px 10px;
+            border-radius: 6px;
+            display: inline-block;
         }
 
         .log-inputs {
@@ -295,6 +319,7 @@
             width: 100%;
             overflow-x: auto;
             margin-top: 10px;
+            margin-bottom: 30px;
         }
 
         table {
@@ -414,11 +439,19 @@
 
         <div id="panel-track">
             <div class="stats-panel">
-                <div>
-                    <div class="stats-title">Today's Local Session Volume</div>
-                    <div id="total-volume" class="stats-value">0 kg</div>
+                <div class="stats-row">
+                    <div>
+                        <div class="stats-title">Today's Lifting Volume</div>
+                        <div id="total-volume" class="stats-value">0 kg</div>
+                    </div>
+                    <button type="button" id="undo-btn" class="btn-undo-header" style="opacity: 0.4; pointer-events: none;" onclick="undoLastSetLocal()">⇐ Undo Set</button>
                 </div>
-                <button type="button" id="undo-btn" class="btn-undo-header" style="opacity: 0.4; pointer-events: none;" onclick="undoLastSetLocal()">⇐ Undo Set</button>
+                <div class="stats-row" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 8px;">
+                    <div>
+                        <div class="stats-title">Previous Session Volume</div>
+                        <div id="prev-volume" class="stats-value" style="font-size: 1.1rem; opacity: 0.9;">Fetching...</div>
+                    </div>
+                </div>
             </div>
 
             <div class="filter-section" style="margin-bottom: 15px;">
@@ -433,9 +466,9 @@
 
         <div id="panel-metrics" class="metrics-panel hidden">
             <div class="exercise-header-row" style="margin-bottom: 5px;">
-                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">All-Time Personal Records</div>
+                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Strength Personal Records</div>
             </div>
-            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Real-time view compiled from your backend database rows.</p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Real-time view compiled from your backend database lifting rows.</p>
 
             <div id="metrics-loader" class="metrics-loading hidden">Connecting to your database PR schema...</div>
 
@@ -448,8 +481,24 @@
                             <th>Projected 1RM</th>
                         </tr>
                     </thead>
-                    <tbody id="pr-table-body">
-                        </tbody>
+                    <tbody id="pr-table-body"></tbody>
+                </table>
+            </div>
+
+            <div class="exercise-header-row" style="margin-bottom: 5px; margin-top: 20px;">
+                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Cardio Endurance Logs</div>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Historical aerobic session duration data compiled from your logs.</p>
+
+            <div id="cardio-table-wrapper" class="pr-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Exercise</th>
+                            <th>Peak Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cardio-table-body"></tbody>
                 </table>
             </div>
         </div>
@@ -474,97 +523,98 @@
 
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Standardized Lookup Array clustered logically by equipment variations and movement patterns
         const fallbackExercises = [
-            // Back
-            { id: 1, exercise: "Machine Lat Pull Down", muscle_group: "Back" },
-            { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
-            { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" },
-            { id: 4, exercise: "Cable Row (Wide)", muscle_group: "Back" },
-            { id: 5, exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" },
-            { id: 6, exercise: "T-Bar Row (Narrow)", muscle_group: "Back" },
-            { id: 7, exercise: "T-Bar Row (Wide)", muscle_group: "Back" },
-            { id: 8, exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
-            { id: 9, exercise: "Machine Row (Narrow)", muscle_group: "Back" },
-            { id: 10, exercise: "Machine Row (Wide)", muscle_group: "Back" },
-            { id: 65, exercise: "Bar Lat Pull Down", muscle_group: "Back" },
-            { id: 66, exercise: "Reverse Lat Pull Down", muscle_group: "Back" },
-            { id: 67, exercise: "Rope Lat Pull Over", muscle_group: "Back" },
-            { id: 68, exercise: "Bar Lat Pull Over", muscle_group: "Back" },
+            // Back Variations
+            { id: "mach_lat_pull_down", exercise: "Machine Lat Pull Down", muscle_group: "Back" },
+            { id: "bar_lat_pull_down", exercise: "Bar Lat Pull Down", muscle_group: "Back" },
+            { id: "rev_lat_pull_down", exercise: "Reverse Lat Pull Down", muscle_group: "Back" },
+            { id: "rope_lat_pull_over", exercise: "Rope Lat Pull Over", muscle_group: "Back" },
+            { id: "bar_lat_pull_over", exercise: "Bar Lat Pull Over", muscle_group: "Back" },
+            { id: "3", exercise: "Cable Row (Narrow)", muscle_group: "Back" },
+            { id: "4", exercise: "Cable Row (Wide)", muscle_group: "Back" },
+            { id: "9", exercise: "Machine Row (Narrow)", muscle_group: "Back" },
+            { id: "10", exercise: "Machine Row (Wide)", muscle_group: "Back" },
+            { id: "5", exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" },
+            { id: "6", exercise: "T-Bar Row (Narrow)", muscle_group: "Back" },
+            { id: "7", exercise: "T-Bar Row (Wide)", muscle_group: "Back" },
+            { id: "8", exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
 
-            // Biceps
-            { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
-            { id: 12, exercise: "Machine Preacher Curl", muscle_group: "Biceps" },
-            { id: 13, exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
-            { id: 14, exercise: "Standing Bar Curl", muscle_group: "Biceps" },
-            { id: 15, exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
-            { id: 16, exercise: "Cable Bar Curl", muscle_group: "Biceps" },
-            { id: 17, exercise: "Bayesian Curl", muscle_group: "Biceps" },
+            // Biceps Variations
+            { id: "mach_preacher_curl", exercise: "Machine Preacher Curl", muscle_group: "Biceps" },
+            { id: "11", exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
+            { id: "cable_hammer_curl", exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
+            { id: "bayesian_curl", exercise: "Bayesian Curl", muscle_group: "Biceps" },
+            { id: "13", exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
+            { id: "14", exercise: "Standing Bar Curl", muscle_group: "Biceps" },
+            { id: "16", exercise: "Cable Bar Curl", muscle_group: "Biceps" },
 
-            // Chest
-            { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 19, exercise: "Machine Flat Bench", muscle_group: "Chest" },
-            { id: 20, exercise: "Flat Bench Hunt (Plate Loaded)", muscle_group: "Chest" },
-            { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
-            { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
-            { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 25, exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
-            { id: 26, exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
-            { id: 27, exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
-            { id: 28, exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" },
-            { id: 29, exercise: "Pec Dec", muscle_group: "Chest" },
-            { id: 30, exercise: "Cable Flys (High to Low)", muscle_group: "Chest" },
-            { id: 31, exercise: "Cable Flys (Low to High)", muscle_group: "Chest" },
-            { id: 32, exercise: "Dips (Weighted)", muscle_group: "Chest" },
+            // Chest Variations
+            { id: "mach_flat_bench", exercise: "Machine Flat Bench", muscle_group: "Chest" },
+            { id: "18", exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: "21", exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: "22", exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: "20", exercise: "Flat Bench Hunt (Plate Loaded)", muscle_group: "Chest" },
+            { id: "23", exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: "26", exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: "27", exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: "25", exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: "28", exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: "29", exercise: "Pec Dec", muscle_group: "Chest" },
+            { id: "30", exercise: "Cable Flys (High to Low)", muscle_group: "Chest" },
+            { id: "31", exercise: "Cable Flys (Low to High)", muscle_group: "Chest" },
+            { id: "32", exercise: "Dips (Weighted)", muscle_group: "Chest" },
 
-            // Triceps
-            { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" },
-            { id: 34, exercise: "Extension Machine", muscle_group: "Triceps" },
-            { id: 35, exercise: "Rope Extension", muscle_group: "Triceps" },
-            { id: 36, exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
-            { id: 37, exercise: "Bar Pull Down", muscle_group: "Triceps" },
-            { id: 38, exercise: "Skull Crushers", muscle_group: "Triceps" },
-            { id: 39, exercise: "Overhead Extension", muscle_group: "Triceps" },
-            { id: 40, exercise: "V-Bar Push Down", muscle_group: "Triceps" },
+            // Triceps Variations
+            { id: "single_handle_tricep", exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
+            { id: "35", exercise: "Rope Extension", muscle_group: "Triceps" },
+            { id: "37", exercise: "Bar Pull Down", muscle_group: "Triceps" },
+            { id: "40", exercise: "V-Bar Push Down", muscle_group: "Triceps" },
+            { id: "34", exercise: "Extension Machine", muscle_group: "Triceps" },
+            { id: "39", exercise: "Overhead Extension", muscle_group: "Triceps" },
+            { id: "38", exercise: "Skull Crushers", muscle_group: "Triceps" },
+            { id: "33", exercise: "Cross Cable Flys", muscle_group: "Triceps" },
 
-            // Shoulders
-            { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
-            { id: 42, exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
-            { id: 43, exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
-            { id: 44, exercise: "Machine Over Head Press", muscle_group: "Shoulders" },
-            { id: 45, exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
-            { id: 46, exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
-            { id: 47, exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
-            { id: 48, exercise: "Front Raise (Plate)", muscle_group: "Shoulders" },
-            { id: 49, exercise: "Front Raise (Cable)", muscle_group: "Shoulders" },
-            { id: 50, exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
-            { id: 51, exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
-            { id: 52, exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
-            { id: 69, exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
+            // Shoulders Variations
+            { id: "mach_oh_press", exercise: "Machine Over Head Press", muscle_group: "Shoulders" },
+            { id: "41", exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
+            { id: "42", exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
+            { id: "43", exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
+            { id: "46", exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
+            { id: "45", exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
+            { id: "47", exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
+            { id: "single_rear_delt_fly", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
+            { id: "51", exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
+            { id: "50", exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
+            { id: "48", exercise: "Front Raise (Plate)", muscle_group: "Shoulders" },
+            { id: "49", exercise: "Front Raise (Cable)", muscle_group: "Shoulders" },
+            { id: "52", exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
 
-            // Legs
-            { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
-            { id: 54, exercise: "Standing Calf Raise", muscle_group: "Legs" },
-            { id: 55, exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" },
-            { id: 56, exercise: "Quad Extension (Cable)", muscle_group: "Legs" },
-            { id: 57, exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" },
-            { id: 58, exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" },
-            { id: 59, exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
-            { id: 60, exercise: "Leg Press (Machine)", muscle_group: "Legs" },
-            { id: 61, exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
-            { id: 70, exercise: "Standing Hamstring Curl", muscle_group: "Legs" },
+            // Legs Variations
+            { id: "55", exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" },
+            { id: "56", exercise: "Quad Extension (Cable)", muscle_group: "Legs" },
+            { id: "standing_hamstring_curl", exercise: "Standing Hamstring Curl", muscle_group: "Legs" },
+            { id: "57", exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: "58", exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: "59", exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
+            { id: "60", exercise: "Leg Press (Machine)", muscle_group: "Legs" },
+            { id: "61", exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
+            { id: "54", exercise: "Standing Calf Raise", muscle_group: "Legs" },
+            { id: "53", exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
 
-            // Cardio
-            { id: 62, exercise: "Treadmill", muscle_group: "Cardio" },
-            { id: 63, exercise: "Spinning Bike", muscle_group: "Cardio" },
-            { id: 64, exercise: "Seated Bike", muscle_group: "Cardio" }
+            // Cardio Variations
+            { id: "62", exercise: "Treadmill", muscle_group: "Cardio" },
+            { id: "63", exercise: "Spinning Bike", muscle_group: "Cardio" },
+            { id: "64", exercise: "Seated Bike", muscle_group: "Cardio" }
         ];
 
         let activeAthlete = "Ginge";
         let localLogsMemory = [];
+        let exerciseOrderSequence = [];
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
@@ -580,6 +630,8 @@
             renderExerciseCards();
             calculateLocalVolume();
             updateUndoButtonUI();
+            restorePersistentFilters();
+            fetchPreviousSessionVolume();
 
             if (localStorage.getItem("gym_tracker_auth_token")) {
                 showLoggedInUI();
@@ -591,6 +643,8 @@
             localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
             calculateLocalVolume();
             updateUndoButtonUI();
+            fetchPreviousSessionVolume();
+            renderExerciseCards();
             
             if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
                 fetchLeaderboardPRs();
@@ -611,14 +665,73 @@
             }
         }
 
+        async function fetchPreviousSessionVolume() {
+            const display = document.getElementById("prev-volume");
+            display.textContent = "Fetching...";
+
+            try {
+                const { data: userData, error: userErr } = await supabaseClient
+                    .from('users')
+                    .select('id')
+                    .eq('name', activeAthlete)
+                    .single();
+
+                if (userErr || !userData) {
+                    display.textContent = "0 kg";
+                    return;
+                }
+
+                // Query the single most recent completed workout session prior to today's date
+                const todayTimestamp = new Date().toISOString().split('T')[0];
+                const { data: lastSessions, error: sessErr } = await supabaseClient
+                    .from('workout_sessions')
+                    .select('id, date')
+                    .eq('user_id', userData.id)
+                    .lt('date', todayTimestamp)
+                    .order('date', { ascending: false })
+                    .limit(1);
+
+                if (sessErr || !lastSessions || lastSessions.length === 0) {
+                    display.textContent = "0 kg (No historical sessions)";
+                    return;
+                }
+
+                // Query and aggregate non-cardio set load combinations tied to that targeted session
+                const targetSessionId = lastSessions[0].id;
+                const { data: logRows, error: logsErr } = await supabaseClient
+                    .from('set_logs')
+                    .select('weight, reps, exercises(muscle_group)')
+                    .eq('session_id', targetSessionId);
+
+                if (logsErr || !logRows || logRows.length === 0) {
+                    display.textContent = "0 kg";
+                    return;
+                }
+
+                const prevTotalVolume = logRows
+                    .filter(row => row.exercises && row.exercises.muscle_group !== 'Cardio')
+                    .reduce((sum, row) => sum + (parseFloat(row.weight) * parseInt(row.reps)), 0);
+
+                display.textContent = `${prevTotalVolume.toLocaleString()} kg`;
+
+            } catch (err) {
+                console.error(err);
+                display.textContent = "Offline or Connection Error";
+            }
+        }
+
         async function fetchLeaderboardPRs() {
             const tbody = document.getElementById("pr-table-body");
+            const cardioBody = document.getElementById("cardio-table-body");
             const loader = document.getElementById("metrics-loader");
             const tableWrapper = document.getElementById("pr-table-wrapper");
+            const cardioWrapper = document.getElementById("cardio-table-wrapper");
 
             loader.classList.remove("hidden");
             tableWrapper.classList.add("hidden");
+            cardioWrapper.classList.add("hidden");
             tbody.innerHTML = "";
+            cardioBody.innerHTML = "";
 
             try {
                 const { data: prRows, error } = await supabaseClient
@@ -628,21 +741,35 @@
 
                 if (error) throw error;
 
-                if (!prRows || prRows.length === 0) {
-                    loader.textContent = `No confirmed milestones logged for ${activeAthlete} yet. End an authenticated session to generate rows.`;
-                    return;
-                }
-
                 loader.classList.add("hidden");
                 tableWrapper.classList.remove("hidden");
+                cardioWrapper.classList.remove("hidden");
 
-                tbody.innerHTML = prRows.map(row => `
-                    <tr>
-                        <td style="font-weight: 600;">${row.exercise_name}<br><span style="font-size:0.75rem; color:#64748b; font-weight:normal;">${row.muscle_group}</span></td>
-                        <td>${row.pr_weight_kg}kg × ${row.pr_reps}</td>
-                        <td class="badge-table-max">${row.top_estimated_1rm_kg}kg</td>
-                    </tr>
-                `).join('');
+                const liftingRows = prRows.filter(r => r.muscle_group !== 'Cardio');
+                const aerobicRows = prRows.filter(r => r.muscle_group === 'Cardio');
+
+                if (liftingRows.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="color:#64748b; text-align:center;">No strength sets logged yet.</td></tr>`;
+                } else {
+                    tbody.innerHTML = liftingRows.map(row => `
+                        <tr>
+                            <td style="font-weight: 600;">${row.exercise_name}<br><span style="font-size:0.75rem; color:#64748b; font-weight:normal;">${row.muscle_group}</span></td>
+                            <td>${row.pr_weight_kg}kg × ${row.pr_reps}</td>
+                            <td class="badge-table-max">${row.top_estimated_1rm_kg}kg</td>
+                        </tr>
+                    `).join('');
+                }
+
+                if (aerobicRows.length === 0) {
+                    cardioBody.innerHTML = `<tr><td colspan="2" style="color:#64748b; text-align:center;">No cardio records logged yet.</td></tr>`;
+                } else {
+                    cardioBody.innerHTML = aerobicRows.map(row => `
+                        <tr>
+                            <td style="font-weight: 600;">${row.exercise_name}</td>
+                            <td class="badge-table-max">${row.pr_weight_kg} Mins</td>
+                        </tr>
+                    `).join('');
+                }
 
             } catch (err) {
                 console.error(err);
@@ -691,11 +818,14 @@
 
             if (lastIndex === -1) return;
 
+            const removedLog = localLogsMemory[lastIndex];
             localLogsMemory.splice(lastIndex, 1);
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
 
             calculateLocalVolume();
             updateUndoButtonUI();
+            updateSetCounterUI(removedLog.exercise_id);
+            updateLastSetDisplayUI(removedLog.exercise_id);
             alert(`Undone: Removed last entry row tracking.`);
         }
 
@@ -716,32 +846,71 @@
             
             grid.innerHTML = fallbackExercises.map(ex => {
                 const isCardio = ex.muscle_group === 'Cardio';
+                const initialCount = getExerciseSetCount(ex.id);
+                const lastSetText = getExerciseLastSetString(ex.id, isCardio);
                 return `
                     <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
                         <div class="exercise-header-row">
-                            <div class="exercise-name">${ex.exercise}</div>
+                            <div class="exercise-name">${ex.exercise}<span id="set-counter-${ex.id}" class="set-counter-badge">${initialCount > 0 ? '(' + initialCount + ')' : ''}</span></div>
                             <div id="max-badge-${ex.id}" class="live-max-badge hidden"></div>
                         </div>
+                        <div id="last-set-container-${ex.id}" class="last-set-banner ${lastSetText ? '' : 'hidden'}">${lastSetText}</div>
                         <div class="log-inputs">
                             <div class="input-group">
-                                <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge(${ex.id}, ${isCardio})">
+                                <label>${isCardio ? 'Duration (Mins)' : 'Weight (kg)'}</label>
+                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge('${ex.id}', ${isCardio})">
                             </div>
                             <div class="input-group ${isCardio ? 'hidden' : ''}">
                                 <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge(${ex.id}, ${isCardio})">
+                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge('${ex.id}', ${isCardio})">
                             </div>
-                            <button class="btn-log" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
+                            <button class="btn-log" onclick="logSetLocal('${ex.id}', ${isCardio})">Log</button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
+        function getExerciseSetCount(exerciseId) {
+            const todayTimestamp = new Date().toISOString().split('T')[0];
+            return localLogsMemory.filter(log => log.athlete === activeAthlete && log.exercise_id === exerciseId && log.date === todayTimestamp).length;
+        }
+
+        function getExerciseLastSetString(exerciseId, isCardio) {
+            const todayTimestamp = new Date().toISOString().split('T')[0];
+            const matchingLogs = localLogsMemory.filter(log => log.athlete === activeAthlete && log.exercise_id === exerciseId && log.date === todayTimestamp);
+            if (matchingLogs.length === 0) return '';
+            
+            const lastLog = matchingLogs[matchingLogs.length - 1];
+            return isCardio ? `Last Entry: ${lastLog.weight} Mins` : `Last Set: ${lastLog.weight}kg × ${lastLog.reps}`;
+        }
+
+        function updateSetCounterUI(exerciseId) {
+            const badge = document.getElementById(`set-counter-${exerciseId}`);
+            const count = getExerciseSetCount(exerciseId);
+            badge.textContent = count > 0 ? `(${count})` : '';
+        }
+
+        function updateLastSetDisplayUI(exerciseId) {
+            const container = document.getElementById(`last-set-container-${exerciseId}`);
+            const exData = fallbackExercises.find(e => e.id === exerciseId);
+            const isCardio = exData ? exData.muscle_group === 'Cardio' : false;
+            const text = getExerciseLastSetString(exerciseId, isCardio);
+
+            if (text) {
+                container.textContent = text;
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
         function filterExercises() {
             const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
             const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
             
+            localStorage.setItem("gym_tracker_active_filters", JSON.stringify(selectedMuscles));
+
             fallbackExercises.forEach(ex => {
                 const card = document.getElementById(`ex-card-${ex.id}`);
                 if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
@@ -750,6 +919,38 @@
                     card.classList.add('hidden');
                 }
             });
+        }
+
+        function restorePersistentFilters() {
+            const savedFilters = localStorage.getItem("gym_tracker_active_filters");
+            if (!savedFilters) return;
+
+            const selectedMuscles = JSON.parse(savedFilters);
+            selectedMuscles.forEach(muscle => {
+                const checkbox = document.getElementById(`muscle-${muscle}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            filterExercises();
+        }
+
+        function resetAllUiCountersAndFilters() {
+            fallbackExercises.forEach(ex => {
+                const badge = document.getElementById(`set-counter-${ex.id}`);
+                if (badge) badge.textContent = '';
+                const container = document.getElementById(`last-set-container-${ex.id}`);
+                if (container) container.classList.add('hidden');
+            });
+            localStorage.removeItem("gym_tracker_active_filters");
+            document.querySelectorAll('.muscle-chip').forEach(cb => cb.checked = false);
+            exerciseOrderSequence = [];
+            filterExercises();
+        }
+
+        function trackExerciseSequenceNumber(exerciseId) {
+            if (!exerciseOrderSequence.includes(exerciseId)) {
+                exerciseOrderSequence.push(exerciseId);
+            }
+            return exerciseOrderSequence.indexOf(exerciseId) + 1;
         }
 
         function logSetLocal(exerciseId, isCardio) {
@@ -763,6 +964,7 @@
             if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
 
             const todayTimestamp = new Date().toISOString().split('T')[0];
+            const allocatedSequence = trackExerciseSequenceNumber(exerciseId);
 
             const newLogEntry = {
                 id: "log_" + Date.now(),
@@ -770,7 +972,9 @@
                 exercise_id: exerciseId,
                 weight: weight,
                 reps: reps,
-                date: todayTimestamp
+                date: todayTimestamp,
+                muscle_group: fallbackExercises.find(e => e.id === exerciseId).muscle_group,
+                exercise_order: allocatedSequence
             };
 
             localLogsMemory.push(newLogEntry);
@@ -782,13 +986,15 @@
 
             calculateLocalVolume();
             updateUndoButtonUI();
+            updateSetCounterUI(exerciseId);
+            updateLastSetDisplayUI(exerciseId);
         }
 
         function calculateLocalVolume() {
             const todayTimestamp = new Date().toISOString().split('T')[0];
             
             const totalVolume = localLogsMemory
-                .filter(log => log.athlete === activeAthlete && log.date === todayTimestamp)
+                .filter(log => log.athlete === activeAthlete && log.date === todayTimestamp && log.muscle_group !== 'Cardio')
                 .reduce((sum, log) => sum + (log.weight * log.reps), 0);
 
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
@@ -810,6 +1016,7 @@
                 localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 calculateLocalVolume();
                 updateUndoButtonUI();
+                resetAllUiCountersAndFilters();
                 return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
             }
 
@@ -834,7 +1041,8 @@
                     session_id: sessionData.id,
                     exercise_id: log.exercise_id,
                     weight: log.weight,
-                    reps: log.reps
+                    reps: log.reps,
+                    exercise_order: log.exercise_order || 1
                 }));
 
                 const { error: logsErr } = await supabaseClient
@@ -848,6 +1056,8 @@
                 
                 calculateLocalVolume();
                 updateUndoButtonUI();
+                resetAllUiCountersAndFilters();
+                fetchPreviousSessionVolume();
 
                 alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
 
@@ -877,6 +1087,7 @@
             } else {
                 localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
                 showLoggedInUI();
+                fetchPreviousSessionVolume();
                 if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
                     fetchLeaderboardPRs();
                 }
@@ -897,6 +1108,8 @@
             document.getElementById('gate-indicator-dot').classList.remove('status-connected');
             document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
             document.getElementById("pr-table-body").innerHTML = "";
+            document.getElementById("cardio-table-body").innerHTML = "";
+            document.getElementById("prev-volume").textContent = "Fetching...";
         }
 
         window.onload = initLocalTracker;
