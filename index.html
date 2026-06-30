@@ -523,11 +523,10 @@
 
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4ZnFieWNudmN2dG1tZmdwcnFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4NDU2NDYsImV4cCI6MjA5ODAyMTY0Nn0.MbWFH73xDzzvRqLG4ivy2sq37AsXAsnBSSxjZZiL8HM';
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Standardized Lookup Array clustered logically by equipment variations and movement patterns
         const fallbackExercises = [
             // Back Variations
             { id: "mach_lat_pull_down", exercise: "Machine Lat Pull Down", muscle_group: "Back" },
@@ -681,7 +680,6 @@
                     return;
                 }
 
-                // Query the single most recent completed workout session prior to today's date
                 const todayTimestamp = new Date().toISOString().split('T')[0];
                 const { data: lastSessions, error: sessErr } = await supabaseClient
                     .from('workout_sessions')
@@ -696,11 +694,10 @@
                     return;
                 }
 
-                // Query and aggregate non-cardio set load combinations tied to that targeted session
                 const targetSessionId = lastSessions[0].id;
                 const { data: logRows, error: logsErr } = await supabaseClient
                     .from('set_logs')
-                    .select('weight, reps, exercises(muscle_group)')
+                    .select('weight, reps, exercise_id')
                     .eq('session_id', targetSessionId);
 
                 if (logsErr || !logRows || logRows.length === 0) {
@@ -708,9 +705,13 @@
                     return;
                 }
 
-                const prevTotalVolume = logRows
-                    .filter(row => row.exercises && row.exercises.muscle_group !== 'Cardio')
-                    .reduce((sum, row) => sum + (parseFloat(row.weight) * parseInt(row.reps)), 0);
+                const prevTotalVolume = logRows.reduce((sum, row) => {
+                    const match = fallbackExercises.find(ex => ex.id === row.exercise_id);
+                    if (match && match.muscle_group !== 'Cardio') {
+                        return sum + (parseFloat(row.weight) * parseInt(row.reps));
+                    }
+                    return sum;
+                }, 0);
 
                 display.textContent = `${prevTotalVolume.toLocaleString()} kg`;
 
