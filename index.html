@@ -283,7 +283,6 @@
             opacity: 0.9;
         }
 
-        /* Metrics Tab Layout Styles */
         .metrics-panel {
             background-color: var(--card-bg);
             border-radius: 12px;
@@ -339,7 +338,6 @@
             font-size: 0.95rem;
         }
 
-        /* Database Control UI Section */
         .db-gate-box {
             margin-top: 20px;
             background-color: var(--card-bg);
@@ -482,7 +480,7 @@
 
         const fallbackExercises = [
             // Back
-            { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
+            { id: 1, exercise: "Machine Lat Pull Down", muscle_group: "Back" },
             { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
             { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" },
             { id: 4, exercise: "Cable Row (Wide)", muscle_group: "Back" },
@@ -492,24 +490,27 @@
             { id: 8, exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
             { id: 9, exercise: "Machine Row (Narrow)", muscle_group: "Back" },
             { id: 10, exercise: "Machine Row (Wide)", muscle_group: "Back" },
+            { id: 65, exercise: "Bar Lat Pull Down", muscle_group: "Back" },
+            { id: 66, exercise: "Reverse Lat Pull Down", muscle_group: "Back" },
+            { id: 67, exercise: "Rope Lat Pull Over", muscle_group: "Back" },
+            { id: 68, exercise: "Bar Lat Pull Over", muscle_group: "Back" },
 
             // Biceps
             { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
-            { id: 12, exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" },
+            { id: 12, exercise: "Machine Preacher Curl", muscle_group: "Biceps" },
             { id: 13, exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
             { id: 14, exercise: "Standing Bar Curl", muscle_group: "Biceps" },
-            { id: 15, exercise: "Cable Rope Curl", muscle_group: "Biceps" },
+            { id: 15, exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
             { id: 16, exercise: "Cable Bar Curl", muscle_group: "Biceps" },
-            { id: 17, exercise: "Cable Handle Curl", muscle_group: "Biceps" },
+            { id: 17, exercise: "Bayesian Curl", muscle_group: "Biceps" },
 
             // Chest
             { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
+            { id: 19, exercise: "Machine Flat Bench", muscle_group: "Chest" },
             { id: 20, exercise: "Flat Bench Hunt (Plate Loaded)", muscle_group: "Chest" },
             { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
             { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
             { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 24, exercise: "Incline Bench Press (Cable)", muscle_group: "Chest" },
             { id: 25, exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
             { id: 26, exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
             { id: 27, exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
@@ -523,7 +524,7 @@
             { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" },
             { id: 34, exercise: "Extension Machine", muscle_group: "Triceps" },
             { id: 35, exercise: "Rope Extension", muscle_group: "Triceps" },
-            { id: 36, exercise: "Handle Pull Down", muscle_group: "Triceps" },
+            { id: 36, exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
             { id: 37, exercise: "Bar Pull Down", muscle_group: "Triceps" },
             { id: 38, exercise: "Skull Crushers", muscle_group: "Triceps" },
             { id: 39, exercise: "Overhead Extension", muscle_group: "Triceps" },
@@ -533,7 +534,7 @@
             { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
             { id: 42, exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
             { id: 43, exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
-            { id: 44, exercise: "Overhead Press (Cable)", muscle_group: "Shoulders" },
+            { id: 44, exercise: "Machine Over Head Press", muscle_group: "Shoulders" },
             { id: 45, exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
             { id: 46, exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
             { id: 47, exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
@@ -542,6 +543,7 @@
             { id: 50, exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
             { id: 51, exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
             { id: 52, exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
+            { id: 69, exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
 
             // Legs
             { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
@@ -553,6 +555,7 @@
             { id: 59, exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
             { id: 60, exercise: "Leg Press (Machine)", muscle_group: "Legs" },
             { id: 61, exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
+            { id: 70, exercise: "Standing Hamstring Curl", muscle_group: "Legs" },
 
             // Cardio
             { id: 62, exercise: "Treadmill", muscle_group: "Cardio" },
@@ -608,7 +611,6 @@
             }
         }
 
-        // Fetch Data Directly From Your Custom Database View
         async function fetchLeaderboardPRs() {
             const tbody = document.getElementById("pr-table-body");
             const loader = document.getElementById("metrics-loader");
@@ -619,7 +621,6 @@
             tbody.innerHTML = "";
 
             try {
-                // Query database view filtering columns directly by active athlete criteria name
                 const { data: prRows, error } = await supabaseClient
                     .from('v_athlete_personal_records')
                     .select('*')
