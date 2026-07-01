@@ -1,4 +1,4 @@
- ```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -631,11 +631,19 @@
             calculateLocalVolume();
             updateUndoButtonUI();
             restorePersistentFilters();
-            fetchPreviousSessionVolume();
 
-            if (localStorage.getItem("gym_tracker_auth_token")) {
+            // Professional Fix: Restore the session token to the active client on load
+            const savedToken = localStorage.getItem("gym_tracker_auth_token");
+            if (savedToken) {
+                supabaseClient.realtime.setAuth(savedToken);
+                supabaseClient.auth.setSession({
+                    access_token: savedToken,
+                    refresh_token: savedToken
+                });
                 showLoggedInUI();
             }
+
+            fetchPreviousSessionVolume();
         }
 
         function handleUserChange() {
@@ -1101,6 +1109,8 @@
             document.getElementById('auth-logged-in').classList.remove('hidden');
             document.getElementById('gate-indicator-dot').classList.add('status-connected');
             document.getElementById('gate-status-text').textContent = "✓ Cloud Connected | Live Sync Active";
+            
+            fetchPreviousSessionVolume();
         }
 
         function handleLogout() {
