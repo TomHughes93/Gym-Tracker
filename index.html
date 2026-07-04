@@ -438,6 +438,9 @@
                 </div>
             </div>
 
+            <!-- Placed cleanly above the muscle picker section -->
+            <div id="live-metrics-display" style="font-size: 0.85rem; font-weight: 700; color: #475569; background-color: #f1f5f9; border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px; margin-bottom: 15px; text-align: center;" class="hidden"></div>
+
             <div class="filter-section" style="margin-bottom: 15px;">
                 <label>Select Muscle Groups</label>
                 <div id="muscle-picker" class="muscle-picker"></div>
@@ -452,9 +455,6 @@
             <div class="exercise-header-row" style="margin-bottom: 5px;">
                 <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Session Peak Progressions</div>
             </div>
-            
-            <div id="live-metrics-display" style="font-size: 0.85rem; font-weight: 700; color: var(--success-color); background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; text-align: center;" class="hidden"></div>
-            
             <p id="metrics-subtitle-text" style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Displaying isolated metric profiles for selected tracking cards.</p>
 
             <div id="metrics-loader" class="metrics-loading hidden">Querying historical session peak rows...</div>
@@ -624,11 +624,11 @@
             document.getElementById('tab-metrics').className = 'tab-btn' + (targetTab === 'metrics' ? ' active' : '');
             
             if (targetTab === 'track') {
-                document.getElementById('panel-track').classList.remove('hidden');
+                document.getElementById('panel-track').remove('hidden');
                 document.getElementById('panel-metrics').classList.add('hidden');
             } else {
                 document.getElementById('panel-track').classList.add('hidden');
-                document.getElementById('panel-metrics').classList.remove('hidden');
+                document.getElementById('panel-metrics').remove('hidden');
                 fetchProgressionAnalytics();
             }
         }
@@ -649,7 +649,6 @@
                     return;
                 }
 
-                // Removed date barrier so current test entries act cleanly as historical log references
                 const { data: lastSessions, error: sessErr } = await supabaseClient
                     .from('workout_sessions')
                     .select('id, date')
@@ -658,7 +657,7 @@
                     .limit(1);
 
                 if (sessErr || !lastSessions || lastSessions.length === 0) {
-                    display.textContent = "0 kg (No historical sessions)";
+                    display.textContent = "0 kg";
                     return;
                 }
 
@@ -694,7 +693,6 @@
             const wrapper = document.getElementById("charts-wrapper-layout");
             const subtitleText = document.getElementById("metrics-subtitle-text");
 
-            // Clear old graph references cleanly
             Object.values(activeChartInstances).forEach(chart => chart.destroy());
             activeChartInstances = {};
             wrapper.innerHTML = "";
@@ -727,7 +725,6 @@
                     return;
                 }
 
-                // Group rows by unique exercise names to generate isolated charts
                 const groups = dbRows.reduce((acc, row) => {
                     if (!acc[row.exercise_name]) acc[row.exercise_name] = [];
                     acc[row.exercise_name].push(row);
@@ -1020,11 +1017,11 @@
             localLogsMemory.push(newLogEntry);
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
 
-            // Instant alert verification for Last Set Entered display panel
+            // Formatted to display as plain string above the filter controls
             const liveMetricsDisplay = document.getElementById('live-metrics-display');
-            liveMetricsDisplay.textContent = isCardio 
-                ? `Last Entered: ${movementName} → ${weight} Mins` 
-                : `Last Entered: ${movementName} → ${weight}kg × ${reps}`;
+            liveMetricsDisplay.innerHTML = isCardio 
+                ? `<strong>Last set</strong> - ${movementName} - ${weight} Mins` 
+                : `<strong>Last set</strong> - ${movementName} - ${weight}kg - ${reps} reps`;
             liveMetricsDisplay.classList.remove('hidden');
 
             if (!isCardio) repsInput.value = '';
