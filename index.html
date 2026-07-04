@@ -18,21 +18,16 @@
         .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-size: 0.95rem; font-weight: 700; text-align: center; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; }
         .tab-btn.active { background-color: var(--primary-color); color: white; }
         .stats-panel { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .stats-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .stats-title { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; }
-        .stats-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; }
-        .last-set-text { font-size: 0.85rem; margin-top: 8px; opacity: 0.9; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px; }
-        .btn-undo { background-color: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; text-transform: uppercase; }
-        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .stats-value { font-size: 1.8rem; font-weight: bold; }
+        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 15px; }
         .muscle-chip { display: none; }
         .muscle-label { padding: 8px 14px; background-color: #f1f5f9; border-radius: 20px; font-size: 0.85rem; cursor: pointer; }
         .muscle-chip:checked + .muscle-label { background-color: var(--primary-color); color: white; }
         .exercise-grid { display: grid; gap: 12px; }
         .exercise-card { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
-        .exercise-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: #1e293b; }
         .log-inputs { display: flex; gap: 10px; align-items: center; }
-        input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; text-align: center; }
-        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; }
+        input { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; }
+        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
         .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
         .hidden { display: none !important; }
     </style>
@@ -51,11 +46,8 @@
 
     <div id="panel-track">
         <div class="stats-panel">
-            <div class="stats-row">
-                <div><div class="stats-title">Today's Volume</div><div id="total-volume" class="stats-value">0 kg</div></div>
-                <button class="btn-undo" onclick="undoLastSet()">Undo</button>
-            </div>
-            <div id="last-set-display" class="last-set-text">Last Set: None</div>
+            <div id="total-volume" class="stats-value">0 kg</div>
+            <button class="btn-undo" onclick="undoLastSet()">Undo</button>
         </div>
         <div id="muscle-picker" class="muscle-picker"></div>
         <div id="exercise-grid" class="exercise-grid"></div>
@@ -69,7 +61,7 @@
     <div class="db-gate-box">
         <input type="email" id="auth-email" placeholder="Email">
         <input type="password" id="auth-password" placeholder="Password">
-        <button class="btn-log" onclick="handleLogin()">Establish Cloud Connection</button>
+        <button class="btn-log" onclick="handleLogin()">Connect Cloud</button>
     </div>
 
     <script>
@@ -81,18 +73,11 @@
         let logs = JSON.parse(localStorage.getItem("logs") || "[]");
 
         function init() {
-            renderFilters(); renderCards();
+            renderCards(); renderFilters();
             const sel = document.getElementById("chart-exercise-select");
             sel.innerHTML += fallbackExercises.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
+            updateVolume();
         }
-
-        function renderFilters() {
-            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))];
-            document.getElementById('muscle-picker').innerHTML = groups.map(g => `
-                <div><input type="checkbox" id="m-${g}" class="muscle-chip"><label for="m-${g}" class="muscle-label">${g}</label></div>
-            `).join('');
-        }
-
         function renderCards() {
             document.getElementById('exercise-grid').innerHTML = fallbackExercises.map(ex => `
                 <div class="exercise-card">
@@ -105,36 +90,33 @@
                 </div>
             `).join('');
         }
-
+        function renderFilters() {
+            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))];
+            document.getElementById('muscle-picker').innerHTML = groups.map(g => `
+                <div><input type="checkbox" id="m-${g}" class="muscle-chip"><label for="m-${g}" class="muscle-label">${g}</label></div>
+            `).join('');
+        }
         function log(id) {
             const w = document.getElementById(`w-${id}`).value;
             const r = document.getElementById(`r-${id}`).value;
             if(!w || !r) return;
             logs.push({id, w, r});
             localStorage.setItem("logs", JSON.stringify(logs));
-            document.getElementById('total-volume').innerText = logs.reduce((a, b) => a + (b.w * b.r), 0) + " kg";
+            updateVolume();
         }
-
-        function undoLastSet() { logs.pop(); localStorage.setItem("logs", JSON.stringify(logs)); }
+        function undoLastSet() { logs.pop(); localStorage.setItem("logs", JSON.stringify(logs)); updateVolume(); }
+        function updateVolume() { document.getElementById('total-volume').innerText = logs.reduce((a, b) => a + (b.w * b.r), 0) + " kg"; }
         function switchTab(t) {
             document.getElementById('panel-track').classList.toggle('hidden', t !== 'track');
             document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics');
         }
-
-        async function endAndSyncSession() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return alert("Log in to sync.");
-            alert("Authenticated. Syncing...");
-        }
-
         async function handleLogin() {
             const { error } = await supabase.auth.signInWithPassword({
                 email: document.getElementById('auth-email').value,
                 password: document.getElementById('auth-password').value
             });
-            if (error) alert(error.message); else alert("Connected.");
+            if (error) alert(error.message); else alert("Connection established.");
         }
-
         window.onload = init;
     </script>
 </body>
