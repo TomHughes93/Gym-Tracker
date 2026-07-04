@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -523,7 +522,7 @@
 
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5';
+        const SUPABASE_ANON_KEY = 'sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaK';
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -583,7 +582,7 @@
             { id: "41", exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
             { id: "42", exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
             { id: "43", exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
-            { id: "46", exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
+            { id: "46", elevation: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
             { id: "45", exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
             { id: "47", exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
             { id: "single_rear_delt_fly", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
@@ -1126,3 +1125,7 @@
     </script>
 </body>
 </html>
+
+```
+
+Commit this build straight to your repository, give the GitHub server a quick minute to deploy, and load it on your phone layout using `?v=103` to pull the production code cleanly.
