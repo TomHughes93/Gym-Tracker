@@ -1,47 +1,45 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gym Tracker Pro</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Gym Analysis Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #0f172a; margin: 0; padding: 2px; color: #f1f5f9; }
-        .container { width: 100%; max-width: 450px; margin: auto; background: #1e293b; padding: 4px; border: 1px solid #334155; }
-        h2 { text-align: center; margin: 0 0 4px 0; font-size: 15px; color: #f8fafc; text-transform: uppercase; }
-        .stats-panel { background: #0f172a; border: 1px solid #334155; padding: 10px; margin-bottom: 4px; text-align: center; font-weight: 800; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 2px; }
-        .exercise-card { background: #1e293b; border: 1px solid #334155; padding: 8px; margin-bottom: 2px; }
-        input, select { width: 100%; padding: 8px; background: #0f172a; border: 1px solid #334155; color: white; margin-top: 4px; }
-        button { width: 100%; padding: 12px; border: none; cursor: pointer; color: white; font-weight: 900; text-transform: uppercase; }
-        .btn-log { background: #10b981; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #10b981; --danger: #ef4444; }
+        body { background: var(--bg); color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 10px; }
+        .container { max-width: 450px; margin: auto; }
+        .card { background: var(--card); padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #334155; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        input, select, button { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 4px; margin-top: 4px; }
+        .btn-log { background: var(--success); font-weight: 900; }
+        .btn-sync { background: var(--danger); font-weight: 900; }
         .hidden { display: none !important; }
-        .tab-menu { display: flex; gap: 2px; margin-bottom: 4px; }
-        .tab-btn { background: #334155; color: #94a3b8; padding: 10px; flex: 1; border: none; }
-        .tab-btn.active { background: #38bdf8; color: #0f172a; }
-        .auth-box { border: 1px dashed #334155; padding: 10px; margin-top: 10px; }
+        .tab-menu { display: flex; gap: 4px; margin-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 10px; background: #334155; border: none; color: #94a3b8; }
+        .tab-btn.active { background: var(--accent); color: var(--bg); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Gym Tracker</h2>
-    
-    <div class="stats-panel">
-        Total Volume: <span id="total-vol" style="color: #38bdf8;">0 kg</span>
-        <button onclick="undoLastSet()" style="background:transparent; border:1px solid #64748b; font-size:10px; padding:2px;">Undo</button>
+    <h2>Gym Analysis</h2>
+    <div class="card">
+        <select id="userSelect" onchange="switchUser()">
+            <option value="Ginge">Ginge</option>
+            <option value="Swift">Swift</option>
+        </select>
+        <div id="vol-display" style="font-weight:800; color:var(--accent);">Volume: 0 kg</div>
     </div>
 
     <div class="tab-menu">
-        <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Track</button>
-        <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">Analytics</button>
+        <button class="tab-btn active" id="btn-track" onclick="toggleTab('track')">Track</button>
+        <button class="tab-btn" id="btn-stats" onclick="toggleTab('stats')">Analytics</button>
     </div>
 
-    <div id="panel-track">
-        <select id="muscle-filter" onchange="renderExercises()">
-            <option value="All">All Muscle Groups</option>
+    <div id="track-panel">
+        <select id="muscle-filter" onchange="render()">
+            <option value="All">All Muscles</option>
             <option value="Back">Back</option>
             <option value="Biceps">Biceps</option>
             <option value="Chest">Chest</option>
@@ -51,23 +49,17 @@
             <option value="Cardio">Cardio</option>
         </select>
         <div id="exercise-list"></div>
+        <button class="btn-sync" onclick="sync()">Sync to Cloud</button>
     </div>
 
-    <div id="panel-stats" class="hidden">
-        <canvas id="gymChart"></canvas>
-    </div>
-
-    <div class="auth-box">
-        <input id="email" placeholder="Email" class="auth-input">
-        <input id="password" type="password" placeholder="Password" class="auth-input">
-        <button onclick="syncToCloud()" style="background:#ea580c; margin-top:5px;">Sync Session</button>
+    <div id="stats-panel" class="hidden">
+        <div class="card">BI Analytics Placeholder</div>
     </div>
 </div>
 
 <script>
-    const _supabaseUrl = "https://jxfqbycnvcvtmmfgprqr.supabase.co";
-    const _supabaseKey = "sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5";
-
+    const supabase = window.supabase.createClient("https://jxfqbycnvcvtmmfgprqr.supabase.co", "sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5");
+    
     const exercises = [
         {id: "mach_lat_pull_down", name: "Lat Pull Down (Plate Loaded)", group: "Back"},
         {id: "bar_lat_pull_down", name: "Lat Pull Down (Straight Bar)", group: "Back"},
@@ -139,64 +131,66 @@
         {id: "seated_bike", name: "Seated Bike", group: "Cardio"}
     ];
 
-    let logs = JSON.parse(localStorage.getItem('gym_logs') || "[]");
+    let user = "Ginge";
 
-    function renderExercises() {
+    function getKey() { return `gym_data_${user}`; }
+
+    function render() {
         const filter = document.getElementById('muscle-filter').value;
         const list = document.getElementById('exercise-list');
         list.innerHTML = exercises
             .filter(e => filter === 'All' || e.group === filter)
             .map(e => `
-                <div class="exercise-card">
-                    <div>${e.name}</div>
+                <div class="card">
+                    <div style="font-weight:700">${e.name}</div>
                     <div class="grid-2">
                         <input id="w-${e.id}" type="number" placeholder="kg">
                         <input id="r-${e.id}" type="number" placeholder="reps">
                     </div>
-                    <button class="btn-log" onclick="logSet('${e.id}', '${e.name}')">Log</button>
+                    <button class="btn-log" onclick="log('${e.id}', '${e.name}')">Log Set</button>
                 </div>
             `).join('');
+        updateVol();
     }
 
-    function logSet(id, name) {
+    function log(id, name) {
         const w = document.getElementById(`w-${id}`).value;
         const r = document.getElementById(`r-${id}`).value;
-        if (!w || !r) return;
+        if(!w || !r) return;
+        const logs = JSON.parse(localStorage.getItem(getKey()) || "[]");
         logs.push({ name, weight: w, reps: r, date: new Date() });
-        localStorage.setItem('gym_logs', JSON.stringify(logs));
-        updateVolume();
+        localStorage.setItem(getKey(), JSON.stringify(logs));
+        document.getElementById(`w-${id}`).value = "";
+        document.getElementById(`r-${id}`).value = "";
+        updateVol();
     }
 
-    function updateVolume() {
+    function updateVol() {
+        const logs = JSON.parse(localStorage.getItem(getKey()) || "[]");
         const vol = logs.reduce((sum, l) => sum + (Number(l.weight) * Number(l.reps)), 0);
-        document.getElementById('total-vol').innerText = `${vol} kg`;
+        document.getElementById('vol-display').innerText = `Volume: ${vol} kg`;
     }
 
-    function undoLastSet() {
-        logs.pop();
-        localStorage.setItem('gym_logs', JSON.stringify(logs));
-        updateVolume();
+    function switchUser() { user = document.getElementById('userSelect').value; render(); }
+
+    function toggleTab(t) {
+        document.getElementById('track-panel').classList.toggle('hidden', t !== 'track');
+        document.getElementById('stats-panel').classList.toggle('hidden', t !== 'stats');
+        document.getElementById('btn-track').classList.toggle('active', t === 'track');
+        document.getElementById('btn-stats').classList.toggle('active', t === 'stats');
     }
 
-    function switchTab(t) {
-        document.getElementById('panel-track').classList.toggle('hidden', t !== 'track');
-        document.getElementById('panel-stats').classList.toggle('hidden', t !== 'stats');
-        document.getElementById('tab-track').classList.toggle('active', t === 'track');
-        document.getElementById('tab-stats').classList.toggle('active', t === 'stats');
+    async function sync() {
+        const logs = JSON.parse(localStorage.getItem(getKey()) || "[]");
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if(!authUser) return alert("Login to sync.");
+        
+        const { error } = await supabase.from('gym_logs').insert(logs.map(l => ({ ...l, user_id: authUser.id })));
+        if(error) alert(error.message);
+        else { localStorage.setItem(getKey(), "[]"); updateVol(); alert("Synced!"); }
     }
 
-    async function syncToCloud() {
-        const res = await fetch(`${_supabaseUrl}/rest/v1/gym_logs`, {
-            method: "POST",
-            headers: { "apikey": _supabaseKey, "Content-Type": "application/json", "Prefer": "return=minimal" },
-            body: JSON.stringify(logs)
-        });
-        if (res.ok) { alert("Synced!"); logs = []; localStorage.setItem('gym_logs', "[]"); updateVolume(); }
-        else alert("Sync failed");
-    }
-
-    renderExercises();
-    updateVolume();
+    render();
 </script>
 </body>
 </html>
