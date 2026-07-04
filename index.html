@@ -224,7 +224,27 @@
                     activeChartInstances[canvasId] = new Chart(document.getElementById(canvasId).getContext('2d'), {
                         type: 'bar',
                         data: { labels: data.map(d => d.session_date), datasets: [{ data: data.map(d => d.peak_weight_kg), backgroundColor: '#0070f3', reps: data.map(d => d.reps_completed) }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#000', font: { weight: 'bold', size: 10 }, align: 'end', anchor: 'end', rotation: -90, formatter: (v, c) => `${c.dataset.reps[c.dataIndex]} reps` } }, scales: { y: { beginAtZero: true, suggestedMax: Math.max(...data.map(d => d.peak_weight_kg)) * 1.2 } } }
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false, 
+                            plugins: { 
+                                legend: { display: false }, 
+                                datalabels: { 
+                                    color: '#000', 
+                                    font: { weight: 'bold', size: 10 }, 
+                                    anchor: 'end', 
+                                    align: 'top', 
+                                    rotation: -90, 
+                                    formatter: (v, c) => `${c.dataset.reps[c.dataIndex]} reps` 
+                                } 
+                            }, 
+                            scales: { 
+                                y: { 
+                                    beginAtZero: true, 
+                                    suggestedMax: Math.max(...data.map(d => d.peak_weight_kg)) * 1.3 
+                                } 
+                            } 
+                        }
                     });
                 });
             } catch (e) { console.error(e); }
