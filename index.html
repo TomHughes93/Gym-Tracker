@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gym Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-color: #f4f6f9;
@@ -314,52 +315,22 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
 
-        .pr-table-container {
-            width: 100%;
-            overflow-x: auto;
-            margin-top: 10px;
-            margin-bottom: 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 0.9rem;
-        }
-
-        th {
-            background-color: #f8fafc;
-            color: #64748b;
-            font-weight: 800;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            padding: 10px;
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-color);
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .badge-table-max {
-            font-weight: bold;
-            color: var(--success-color);
-        }
-
         .metrics-loading {
             text-align: center;
             padding: 30px;
             color: #64748b;
             font-weight: bold;
             font-size: 0.95rem;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            margin-top: 15px;
+            background-color: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .db-gate-box {
@@ -465,40 +436,14 @@
 
         <div id="panel-metrics" class="metrics-panel hidden">
             <div class="exercise-header-row" style="margin-bottom: 5px;">
-                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Strength Personal Records</div>
+                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Session Peak Progressions</div>
             </div>
-            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Real-time view compiled from your backend database lifting rows.</p>
+            <p id="metrics-subtitle-text" style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Displaying highest single-set weight tracked per session for selected muscle groups.</p>
 
-            <div id="metrics-loader" class="metrics-loading hidden">Connecting to your database PR schema...</div>
+            <div id="metrics-loader" class="metrics-loading hidden">Querying historical session peak rows...</div>
 
-            <div id="pr-table-wrapper" class="pr-table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Movement</th>
-                            <th>Best Set</th>
-                            <th>Projected 1RM</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pr-table-body"></tbody>
-                </table>
-            </div>
-
-            <div class="exercise-header-row" style="margin-bottom: 5px; margin-top: 20px;">
-                <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Cardio Endurance Logs</div>
-            </div>
-            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Historical aerobic session duration data compiled from your logs.</p>
-
-            <div id="cardio-table-wrapper" class="pr-table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Exercise</th>
-                            <th>Peak Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cardio-table-body"></tbody>
-                </table>
+            <div id="chart-wrapper" class="chart-container">
+                <canvas id="progressionChart"></canvas>
             </div>
         </div>
 
@@ -582,7 +527,7 @@
             { id: "41", exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
             { id: "42", exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
             { id: "43", exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
-            { id: "46", elevation: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
+            { id: "46", exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
             { id: "45", exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
             { id: "47", exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
             { id: "single_rear_delt_fly", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
@@ -613,6 +558,7 @@
         let activeAthlete = "Ginge";
         let localLogsMemory = [];
         let exerciseOrderSequence = [];
+        let progressionChartInstance = null;
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
@@ -652,7 +598,7 @@
             renderExerciseCards();
             
             if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                fetchLeaderboardPRs();
+                fetchProgressionAnalytics();
             }
         }
 
@@ -666,7 +612,7 @@
             } else {
                 document.getElementById('panel-track').classList.add('hidden');
                 document.getElementById('panel-metrics').classList.remove('hidden');
-                fetchLeaderboardPRs();
+                fetchProgressionAnalytics();
             }
         }
 
@@ -701,7 +647,7 @@
                 }
 
                 const targetSessionId = lastSessions[0].id;
-                const { data: logRows, error: logsErr } = await supabaseClient
+                const { data: logRows, error: logsErr = null } = await supabaseClient
                     .from('set_logs')
                     .select('weight, reps, exercise_id')
                     .eq('session_id', targetSessionId);
@@ -727,61 +673,106 @@
             }
         }
 
-        async function fetchLeaderboardPRs() {
-            const tbody = document.getElementById("pr-table-body");
-            const cardioBody = document.getElementById("cardio-table-body");
+        async function fetchProgressionAnalytics() {
             const loader = document.getElementById("metrics-loader");
-            const tableWrapper = document.getElementById("pr-table-wrapper");
-            const cardioWrapper = document.getElementById("cardio-table-wrapper");
+            const chartWrapper = document.getElementById("chart-wrapper");
+            const subtitleText = document.getElementById("metrics-subtitle-text");
 
             loader.classList.remove("hidden");
-            tableWrapper.classList.add("hidden");
-            cardioWrapper.classList.add("hidden");
-            tbody.innerHTML = "";
-            cardioBody.innerHTML = "";
+            chartWrapper.classList.add("hidden");
+
+            const savedFilters = localStorage.getItem("gym_tracker_active_filters");
+            const selectedMuscles = savedFilters ? JSON.parse(savedFilters) : [];
+
+            if (selectedMuscles.length === 0) {
+                loader.textContent = "Please select at least one muscle group checkbox on the tracking cards tab.";
+                return;
+            }
+
+            subtitleText.textContent = `Displaying history for: ${selectedMuscles.join(', ')}`;
 
             try {
-                const { data: prRows, error } = await supabaseClient
-                    .from('v_athlete_personal_records')
+                const { data: dbRows, error } = await supabaseClient
+                    .from('v_athlete_session_peaks')
                     .select('*')
-                    .eq('athlete_name', activeAthlete);
+                    .eq('athlete_name', activeAthlete)
+                    .in('muscle_group', selectedMuscles)
+                    .order('session_date', { ascending: true });
 
                 if (error) throw error;
 
                 loader.classList.add("hidden");
-                tableWrapper.classList.remove("hidden");
-                cardioWrapper.classList.remove("hidden");
+                chartWrapper.classList.remove("hidden");
 
-                const liftingRows = prRows.filter(r => r.muscle_group !== 'Cardio');
-                const aerobicRows = prRows.filter(r => r.muscle_group === 'Cardio');
-
-                if (liftingRows.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" style="color:#64748b; text-align:center;">No strength sets logged yet.</td></tr>`;
-                } else {
-                    tbody.innerHTML = liftingRows.map(row => `
-                        <tr>
-                            <td style="font-weight: 600;">${row.exercise_name}<br><span style="font-size:0.75rem; color:#64748b; font-weight:normal;">${row.muscle_group}</span></td>
-                            <td>${row.pr_weight_kg}kg × ${row.pr_reps}</td>
-                            <td class="badge-table-max">${row.top_estimated_1rm_kg}kg</td>
-                        </tr>
-                    `).join('');
-                }
-
-                if (aerobicRows.length === 0) {
-                    cardioBody.innerHTML = `<tr><td colspan="2" style="color:#64748b; text-align:center;">No cardio records logged yet.</td></tr>`;
-                } else {
-                    cardioBody.innerHTML = aerobicRows.map(row => `
-                        <tr>
-                            <td style="font-weight: 600;">${row.exercise_name}</td>
-                            <td class="badge-table-max">${row.pr_weight_kg} Mins</td>
-                        </tr>
-                    `).join('');
-                }
+                renderBarChartProgression(dbRows);
 
             } catch (err) {
                 console.error(err);
-                loader.textContent = "Error pulling database milestone metrics layer data.";
+                loader.textContent = "Error loading bar chart historical analytics timeline rows.";
             }
+        }
+
+        function renderBarChartProgression(dataRows) {
+            const ctx = document.getElementById('progressionChart').getContext('2d');
+
+            if (progressionChartInstance) {
+                progressionChartInstance.destroy();
+            }
+
+            if (dataRows.length === 0) {
+                ctx.clearRect(0, 0, 400, 400);
+                document.getElementById("metrics-loader").classList.remove("hidden");
+                document.getElementById("metrics-loader").textContent = "No logged sets found for the active muscle category filters.";
+                document.getElementById("chart-wrapper").classList.add("hidden");
+                return;
+            }
+
+            const chartLabels = dataRows.map(r => `${r.session_date}\n(${r.exercise_name.split(' (')[0]})`);
+            const chartDataValues = dataRows.map(r => r.peak_weight_kg);
+            const repCounts = dataRows.map(r => r.reps_completed);
+
+            progressionChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Peak Load Lifted (kg)',
+                        data: chartDataValues,
+                        backgroundColor: '#0070f3',
+                        borderColor: '#0051b3',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const fullRow = dataRows[index];
+                                    return ` Best Set: ${context.raw}kg × ${repCounts[index]} reps`;
+                                },
+                                afterLabel: function(context) {
+                                    return ` Movement: ${dataRows[context.dataIndex].exercise_name}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Mass (kg)', font: { weight: 'bold' } }
+                        },
+                        x: {
+                            ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 } }
+                        }
+                    }
+                }
+            });
         }
 
         function liveCalculateMaxBadge(exerciseId, isCardio) {
@@ -926,6 +917,10 @@
                     card.classList.add('hidden');
                 }
             });
+
+            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
+                fetchProgressionAnalytics();
+            }
         }
 
         function restorePersistentFilters() {
@@ -1069,7 +1064,7 @@
                 alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
 
                 if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    fetchLeaderboardPRs();
+                    fetchProgressionAnalytics();
                 }
 
             } catch (err) {
@@ -1096,7 +1091,7 @@
                 showLoggedInUI();
                 fetchPreviousSessionVolume();
                 if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    fetchLeaderboardPRs();
+                    fetchProgressionAnalytics();
                 }
             }
         }
@@ -1116,8 +1111,10 @@
             document.getElementById('auth-logged-in').classList.add('hidden');
             document.getElementById('gate-indicator-dot').classList.remove('status-connected');
             document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
-            document.getElementById("pr-table-body").innerHTML = "";
-            document.getElementById("cardio-table-body").innerHTML = "";
+            if (progressionChartInstance) {
+                progressionChartInstance.destroy();
+                progressionChartInstance = null;
+            }
             document.getElementById("prev-volume").textContent = "Fetching...";
         }
 
@@ -1125,7 +1122,3 @@
     </script>
 </body>
 </html>
-
-```
-
-Commit this build straight to your repository, give the GitHub server a quick minute to deploy, and load it on your phone layout using `?v=103` to pull the production code cleanly.
