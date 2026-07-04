@@ -18,8 +18,8 @@
         .tab-menu { display: flex; gap: 4px; margin-bottom: 15px; }
         .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-weight: 700; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; }
         .tab-btn.active { background-color: var(--primary-color); color: white; }
-        .stats-panel { background: #0f172a; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .btn-undo-header { background: rgba(255, 255, 255, 0.1); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .stats-panel { background: #0f172a; color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .btn-undo-header { background: rgba(255, 255, 255, 0.1); color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
         .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
         .muscle-chip { display: none; }
         .muscle-label { padding: 8px 14px; background: #e2e8f0; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
@@ -27,9 +27,9 @@
         .exercise-grid { display: grid; gap: 12px; }
         .exercise-card { background: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
         .log-inputs { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
-        input[type="number"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; }
+        input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; text-align: center; }
         .btn-log { background: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; cursor: pointer; }
-        .last-set-banner { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-top: 5px; }
+        .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -52,6 +52,7 @@
 <div id="panel-track">
     <div class="stats-panel">
         <div>Volume: <span id="total-volume">0 kg</span></div>
+        <div>Previous Session: <span id="prev-volume">0 kg</span></div>
         <button id="undo-btn" class="btn-undo-header" onclick="undoLastSetLocal()">Undo Last Set</button>
     </div>
     <div id="muscle-picker" class="muscle-picker"></div>
@@ -60,6 +61,15 @@
 
 <div id="panel-metrics" class="metrics-panel hidden">
     <div id="charts-wrapper-layout"></div>
+</div>
+
+<div class="db-gate-box">
+    <div id="auth-logged-out">
+        <input type="email" id="auth-email" placeholder="Email">
+        <input type="password" id="auth-password" placeholder="Password">
+        <button style="width:100%; padding:10px; margin-top:10px;" onclick="handleLogin()">Login</button>
+    </div>
+    <button id="auth-logged-in" class="hidden" style="width:100%; padding:10px;" onclick="handleLogout()">Logout</button>
 </div>
 
 <script>
@@ -139,25 +149,15 @@
 
     function getStorageKey() { return `gym_logs_${activeAthlete}`; }
 
-    function renderFilters() {
-        const groups = [...new Set(exercises.map(e => e.muscle_group))];
-        document.getElementById('muscle-picker').innerHTML = groups.map(g => `
-            <input type="checkbox" id="${g}" class="muscle-chip" onchange="updateUI()" checked>
-            <label for="${g}" class="muscle-label">${g}</label>
-        `).join('');
-    }
-
-    function updateUI() {
+    async function updateUI() {
         const logs = JSON.parse(localStorage.getItem(getStorageKey()) || "[]");
         const activeGroups = Array.from(document.querySelectorAll('.muscle-chip:checked')).map(c => c.id);
         
-        // Render exercises
         document.getElementById('exercise-grid').innerHTML = exercises
             .filter(ex => activeGroups.includes(ex.muscle_group))
             .map(ex => `
                 <div class="exercise-card">
                     <div style="font-weight:600">${ex.exercise}</div>
-                    <div id="last-set-${ex.id}" class="last-set-banner"></div>
                     <div class="log-inputs">
                         <input type="number" id="input-w-${ex.id}" placeholder="kg">
                         <input type="number" id="input-r-${ex.id}" placeholder="reps">
@@ -166,52 +166,55 @@
                 </div>
             `).join('');
 
-        // Update stats
         const vol = logs.reduce((s, l) => s + (l.weight * l.reps), 0);
         document.getElementById('total-volume').textContent = `${vol} kg`;
         
-        // Last set info
-        logs.forEach(l => {
-            const el = document.getElementById(`last-set-${l.exercise_id}`);
-            if (el) el.textContent = `Last: ${l.weight}kg x ${l.reps}`;
-        });
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+            document.getElementById('auth-logged-out').classList.add('hidden');
+            document.getElementById('auth-logged-in').classList.remove('hidden');
+            fetchPreviousSessionVolume(user.id);
+        }
     }
 
+    async function fetchPreviousSessionVolume(uid) {
+        const { data: s } = await supabaseClient.from('workout_sessions').select('id').eq('user_id', uid).order('created_at', { ascending: false }).limit(2);
+        if (s && s.length > 1) {
+            const { data: l } = await supabaseClient.from('set_logs').select('weight, reps').eq('session_id', s[1].id);
+            const v = l.reduce((sum, r) => sum + (r.weight * r.reps), 0);
+            document.getElementById('prev-volume').textContent = `${v.toLocaleString()} kg`;
+        }
+    }
+
+    async function handleLogin() { 
+        const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('auth-email').value, password: document.getElementById('auth-password').value });
+        if (error) alert(error.message); else location.reload();
+    }
+    function handleLogout() { supabaseClient.auth.signOut().then(() => location.reload()); }
     function logSetLocal(id) {
         const w = parseFloat(document.getElementById(`input-w-${id}`).value);
         const r = parseInt(document.getElementById(`input-r-${id}`).value);
-        if (isNaN(w) || isNaN(r)) return alert('Enter values.');
-        
+        if (isNaN(w) || isNaN(r)) return;
         const logs = JSON.parse(localStorage.getItem(getStorageKey()) || "[]");
         logs.push({ exercise_id: id, weight: w, reps: r });
         localStorage.setItem(getStorageKey(), JSON.stringify(logs));
         updateUI();
     }
-
     function undoLastSetLocal() {
         const logs = JSON.parse(localStorage.getItem(getStorageKey()) || "[]");
         logs.pop();
         localStorage.setItem(getStorageKey(), JSON.stringify(logs));
         updateUI();
     }
-
-    async function endAndSyncSession() {
-        const logs = JSON.parse(localStorage.getItem(getStorageKey()) || "[]");
-        if (logs.length === 0) return alert("No logs.");
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) return alert("Please log in.");
-        try {
-            const { data: session } = await supabaseClient.from('workout_sessions').insert([{ user_id: user.id }]).select().single();
-            await supabaseClient.from('set_logs').insert(logs.map(l => ({ session_id: session.id, ...l })));
-            localStorage.removeItem(getStorageKey());
-            updateUI();
-            alert("Sync complete.");
-        } catch (e) { alert("Sync failed."); }
+    function switchTab(t) { 
+        document.getElementById('panel-track').classList.toggle('hidden', t !== 'track'); 
+        document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics'); 
     }
-
     function handleUserChange() { activeAthlete = document.getElementById("user-select").value; updateUI(); }
-    function switchTab(t) { document.getElementById('panel-track').classList.toggle('hidden', t !== 'track'); document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics'); }
-    window.onload = () => { renderFilters(); updateUI(); };
+    window.onload = () => { 
+        document.getElementById('muscle-picker').innerHTML = [...new Set(exercises.map(e => e.muscle_group))].map(g => `<input type="checkbox" id="${g}" class="muscle-chip" onchange="updateUI()" checked><label for="${g}" class="muscle-label">${g}</label>`).join('');
+        updateUI(); 
+    };
 </script>
 </body>
 </html>
