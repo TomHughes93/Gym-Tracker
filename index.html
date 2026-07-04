@@ -8,396 +8,52 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary-color: #0070f3;
-            --success-color: #22c55e;
-            --danger-color: #ef4444;
-            --border-color: #e2e8f0;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 15px;
-            padding-bottom: 50px;
-        }
-
-        header {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
-
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-
-        .user-selector-container {
-            flex-grow: 1;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            background-color: #f8fafc;
-            color: var(--text-color);
-            font-weight: 600;
-            height: 48px;
-        }
-
-        .btn-end-session {
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-            height: 48px;
-        }
-
-        .btn-end-session:active {
-            background-color: #dc2626;
-        }
-
-        .tab-menu {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 15px;
-        }
-
-        .tab-btn {
-            background-color: #e2e8f0;
-            color: #4a5568;
-            padding: 12px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            text-align: center;
-            cursor: pointer;
-            flex: 1;
-            border: none;
-            border-radius: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .tab-btn.active {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .stats-panel {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            color: white;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .stats-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
-        }
-
-        .stats-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-top: 2px;
-        }
-
-        .btn-undo-header {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
-        .btn-undo-header:active {
-            background-color: rgba(255, 255, 255, 0.25);
-        }
-
-        .filter-section {
-            margin-bottom: 5px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #4a5568;
-        }
-
-        .muscle-picker {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            background-color: var(--card-bg);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        .muscle-chip {
-            display: none;
-        }
-
-        .muscle-label {
-            padding: 8px 14px;
-            background-color: #f1f5f9;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .muscle-chip:checked + .muscle-label {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .exercise-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        .exercise-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .exercise-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-
-        .exercise-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #1e293b;
-            padding-right: 10px;
-        }
-
-        .set-counter-badge {
-            color: var(--primary-color);
-            font-weight: 800;
-            margin-left: 6px;
-        }
-
-        .live-max-badge {
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: var(--primary-color);
-            background-color: rgba(0, 112, 243, 0.08);
-            border: 1px solid rgba(0, 112, 243, 0.15);
-            padding: 4px 8px;
-            border-radius: 6px;
-            white-space: nowrap;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .last-set-banner {
-            font-size: 0.8rem;
-            color: #64748b;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background-color: #f8fafc;
-            padding: 6px 10px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-
-        .log-inputs {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .input-group {
-            flex: 1;
-        }
-
-        .input-group label {
-            font-size: 0.75rem;
-            color: #718096;
-        }
-
-        input[type="number"], input[type="email"], input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            background-color: #f8fafc;
-            text-align: center;
-        }
-
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .btn-log {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            align-self: flex-end;
-            height: 48px;
-        }
-
-        .btn-log:active {
-            opacity: 0.9;
-        }
-
-        .metrics-panel {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .metrics-loading {
-            text-align: center;
-            padding: 30px;
-            color: #64748b;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
-
-        .chart-card-wrapper {
-            background-color: #f8fafc;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-        }
-
-        .chart-card-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 8px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 4px;
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 180px;
-        }
-
-        .db-gate-box {
-            margin-top: 20px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .gate-title {
-            font-size: 0.8rem;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .gate-inputs {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn-gate {
-            background-color: #334155;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background-color: #94a3b8;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .status-connected {
-            background-color: var(--success-color);
-        }
-
-        .hidden {
-            display: none !important;
-        }
+        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary-color: #0070f3; --success-color: #22c55e; --danger-color: #ef4444; --border-color: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 50px; }
+        header { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
+        .user-selector-container { flex-grow: 1; }
+        select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; color: var(--text-color); font-weight: 600; height: 48px; }
+        .btn-end-session { background-color: var(--danger-color); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2); height: 48px; }
+        .tab-menu { display: flex; gap: 4px; margin-bottom: 15px; }
+        .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-size: 0.95rem; font-weight: 700; text-align: center; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tab-btn.active { background-color: var(--primary-color); color: white; }
+        .stats-panel { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .stats-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+        .stats-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+        .stats-value { font-size: 1.5rem; font-weight: bold; margin-top: 2px; }
+        .btn-undo-header { background-color: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-transform: uppercase; }
+        .filter-section { margin-bottom: 5px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .muscle-chip { display: none; }
+        .muscle-label { padding: 8px 14px; background-color: #f1f5f9; border-radius: 20px; font-size: 0.85rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .muscle-chip:checked + .muscle-label { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .exercise-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .exercise-card { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .exercise-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .exercise-name { font-size: 1.1rem; font-weight: 600; color: #1e293b; padding-right: 10px; }
+        .set-counter-badge { color: var(--primary-color); font-weight: 800; margin-left: 6px; }
+        .live-max-badge { font-size: 0.75rem; font-weight: 800; color: var(--primary-color); background-color: rgba(0, 112, 243, 0.08); border: 1px solid rgba(0, 112, 243, 0.15); padding: 4px 8px; border-radius: 6px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px; }
+        .last-set-banner { font-size: 0.8rem; color: #64748b; font-weight: 700; margin-bottom: 10px; background-color: #f8fafc; padding: 6px 10px; border-radius: 6px; display: inline-block; }
+        .log-inputs { display: flex; gap: 10px; align-items: center; }
+        .input-group { flex: 1; }
+        .input-group label { font-size: 0.75rem; color: #718096; }
+        input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; text-align: center; }
+        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; align-self: flex-end; height: 48px; }
+        .metrics-panel { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
+        .metrics-loading { text-align: center; padding: 30px; color: #64748b; font-weight: bold; font-size: 0.95rem; }
+        .chart-card-wrapper { background-color: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        .chart-card-title { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px; }
+        .chart-container { position: relative; width: 100%; height: 180px; }
+        .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
+        .gate-title { font-size: 0.8rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; text-align: center; }
+        .gate-inputs { display: flex; flex-direction: column; gap: 8px; }
+        .btn-gate { background-color: #334155; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background-color: #94a3b8; border-radius: 50%; margin-right: 5px; }
+        .status-connected { background-color: var(--success-color); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -414,7 +70,6 @@
                 </div>
                 <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
             </div>
-
             <div class="tab-menu">
                 <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Tracking Cards</button>
                 <button class="tab-btn" id="tab-metrics" onclick="switchTab('metrics')">Performance Analytics</button>
@@ -437,17 +92,12 @@
                     </div>
                 </div>
             </div>
-
             <div id="live-metrics-display" style="font-size: 0.85rem; font-weight: 700; color: #475569; background-color: #f1f5f9; border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 8px; margin-bottom: 15px; text-align: center;" class="hidden"></div>
-
             <div class="filter-section" style="margin-bottom: 15px;">
                 <label>Select Muscle Groups</label>
                 <div id="muscle-picker" class="muscle-picker"></div>
             </div>
-
-            <main>
-                <div id="exercise-grid" class="exercise-grid"></div>
-            </main>
+            <main><div id="exercise-grid" class="exercise-grid"></div></main>
         </div>
 
         <div id="panel-metrics" class="metrics-panel hidden">
@@ -455,38 +105,26 @@
                 <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Session Peak Progressions</div>
             </div>
             <p id="metrics-subtitle-text" style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Displaying isolated metric profiles for selected tracking cards.</p>
-
             <div id="metrics-loader" class="metrics-loading hidden">Querying historical session peak rows...</div>
-
             <div id="charts-wrapper-layout"></div>
         </div>
 
         <div class="db-gate-box">
-            <div class="gate-title">
-                <span id="gate-indicator-dot" class="status-dot"></span>
-                <span id="gate-status-text">Cloud Connection Mode: Public Offline</span>
-            </div>
-            
+            <div class="gate-title"><span id="gate-indicator-dot" class="status-dot"></span><span id="gate-status-text">Cloud Connection Mode: Public Offline</span></div>
             <div id="auth-logged-out" class="gate-inputs">
                 <input type="email" id="auth-email" placeholder="Supabase Cloud Email">
                 <input type="password" id="auth-password" placeholder="Password">
                 <button type="button" class="btn-gate" onclick="handleLogin()">Establish Write Connection</button>
             </div>
-
-            <div id="auth-logged-in" class="hidden" style="text-align: center;">
-                <button type="button" class="btn-gate" style="background-color: var(--danger-color);" onclick="handleLogout()">Disconnect Cloud pipeline</button>
-            </div>
+            <div id="auth-logged-in" class="hidden" style="text-align: center;"><button type="button" class="btn-gate" style="background-color: var(--danger-color);" onclick="handleLogout()">Disconnect Cloud pipeline</button></div>
         </div>
     </div>
 
     <script>
         Chart.register(ChartDataLabels);
-
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5';
-
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const fallbackExercises = [
             { id: "mach_lat_pull_down", exercise: "Lat Pull Down (Plate Loaded)", muscle_group: "Back" },
             { id: "bar_lat_pull_down", exercise: "Lat Pull Down (Straight Bar)", muscle_group: "Back" },
@@ -558,606 +196,72 @@
             { id: "64", exercise: "Seated Bike", muscle_group: "Cardio" }
         ];
 
-        let activeAthlete = "Ginge";
-        let localLogsMemory = [];
-        let exerciseOrderSequence = [];
-        let activeChartInstances = {};
+        let activeAthlete = "Ginge"; let localLogsMemory = []; let exerciseOrderSequence = []; let activeChartInstances = {};
 
         function initLocalTracker() {
-            const savedLogs = localStorage.getItem("gym_tracker_local_logs");
-            localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
-
+            const savedLogs = localStorage.getItem("gym_tracker_local_logs"); localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
             const savedAthlete = localStorage.getItem("gym_tracker_active_athlete");
-            if (savedAthlete) {
-                activeAthlete = savedAthlete;
-                document.getElementById("user-select").value = activeAthlete;
-            }
-
-            renderMuscleFilters();
-            renderExerciseCards();
-            calculateLocalVolume();
-            updateUndoButtonUI();
-            restorePersistentFilters();
-
+            if (savedAthlete) { activeAthlete = savedAthlete; document.getElementById("user-select").value = activeAthlete; }
+            renderMuscleFilters(); renderExerciseCards(); calculateLocalVolume(); updateUndoButtonUI(); restorePersistentFilters();
             const savedToken = localStorage.getItem("gym_tracker_auth_token");
-            if (savedToken) {
-                supabaseClient.realtime.setAuth(savedToken);
-                supabaseClient.auth.setSession({
-                    access_token: savedToken,
-                    refresh_token: savedToken
-                });
-                showLoggedInUI();
-            } else {
-                fetchPreviousSessionVolume();
-            }
-        }
-
-        function handleUserChange() {
-            activeAthlete = document.getElementById("user-select").value;
-            localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
-            calculateLocalVolume();
-            updateUndoButtonUI();
-            fetchPreviousSessionVolume();
-            renderExerciseCards();
-            
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                fetchProgressionAnalytics();
-            }
-        }
-
-        function switchTab(targetTab) {
-            document.getElementById('tab-track').className = 'tab-btn' + (targetTab === 'track' ? ' active' : '');
-            document.getElementById('tab-metrics').className = 'tab-btn' + (targetTab === 'metrics' ? ' active' : '');
-            
-            if (targetTab === 'track') {
-                document.getElementById('panel-track').classList.remove('hidden');
-                document.getElementById('panel-metrics').classList.add('hidden');
-            } else {
-                document.getElementById('panel-track').classList.add('hidden');
-                document.getElementById('panel-metrics').classList.remove('hidden');
-                fetchProgressionAnalytics();
-            }
-        }
-
-        async function fetchPreviousSessionVolume() {
-            const display = document.getElementById("prev-volume");
-            display.textContent = "Fetching...";
-
-            try {
-                const { data: userData, error: userErr } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('name', activeAthlete)
-                    .maybeSingle();
-
-                if (userErr || !userData) {
-                    display.textContent = "0 kg";
-                    return;
-                }
-
-                const { data: lastSessions, error: sessErr } = await supabaseClient
-                    .from('workout_sessions')
-                    .select('id, date')
-                    .eq('user_id', userData.id)
-                    .order('date', { ascending: false })
-                    .limit(2);
-
-                if (sessErr || !lastSessions || lastSessions.length === 0) {
-                    display.textContent = "0 kg";
-                    return;
-                }
-
-                const targetSessionId = lastSessions.length > 1 ? lastSessions[1].id : lastSessions[0].id;
-
-                const { data: logRows, error: logsErr } = await supabaseClient
-                    .from('set_logs')
-                    .select('weight, reps, exercise_id')
-                    .eq('session_id', targetSessionId);
-
-                if (logsErr || !logRows || logRows.length === 0) {
-                    display.textContent = "0 kg";
-                    return;
-                }
-
-                const prevTotalVolume = logRows.reduce((sum, row) => {
-                    const match = fallbackExercises.find(ex => ex.id === row.exercise_id);
-                    if (match && match.muscle_group !== 'Cardio') {
-                        return sum + (parseFloat(row.weight) * parseInt(row.reps));
-                    }
-                    return sum;
-                }, 0);
-
-                display.textContent = `${prevTotalVolume.toLocaleString()} kg`;
-
-            } catch (err) {
-                console.error(err);
-                display.textContent = "Offline or Connection Error";
-            }
+            if (savedToken) { supabaseClient.realtime.setAuth(savedToken); supabaseClient.auth.setSession({ access_token: savedToken, refresh_token: savedToken }); showLoggedInUI(); }
+            else { fetchPreviousSessionVolume(); }
         }
 
         async function fetchProgressionAnalytics() {
-            const loader = document.getElementById("metrics-loader");
-            const wrapper = document.getElementById("charts-wrapper-layout");
-            const subtitleText = document.getElementById("metrics-subtitle-text");
-
-            Object.values(activeChartInstances).forEach(chart => {
-                if(chart) chart.destroy();
-            });
-            activeChartInstances = {};
-            wrapper.innerHTML = "";
-
-            loader.classList.remove("hidden");
-
-            const savedFilters = localStorage.getItem("gym_tracker_active_filters");
-            const selectedMuscles = savedFilters ? JSON.parse(savedFilters) : [];
-
-            if (selectedMuscles.length === 0) {
-                loader.textContent = "Please select at least one muscle group checkbox on the tracking cards tab.";
-                return;
-            }
-
-            subtitleText.textContent = `Displaying history for: ${selectedMuscles.join(', ')}`;
-
+            const loader = document.getElementById("metrics-loader"); const wrapper = document.getElementById("charts-wrapper-layout");
+            Object.values(activeChartInstances).forEach(c => { if(c) c.destroy(); }); activeChartInstances = {}; wrapper.innerHTML = ""; loader.classList.remove("hidden");
+            const savedFilters = localStorage.getItem("gym_tracker_active_filters"); const selectedMuscles = savedFilters ? JSON.parse(savedFilters) : [];
+            if (selectedMuscles.length === 0) { loader.textContent = "Please select muscle group filters."; return; }
             try {
-                const { data: dbRows, error } = await supabaseClient
-                    .from('v_athlete_session_peaks')
-                    .select('*')
-                    .eq('athlete_name', activeAthlete)
-                    .in('muscle_group', selectedMuscles)
-                    .order('session_date', { ascending: true });
-
-                if (error) throw error;
+                const { data: dbRows } = await supabaseClient.from('v_athlete_session_peaks').select('*').ilike('athlete_name', activeAthlete).in('muscle_group', selectedMuscles).order('session_date', { ascending: true });
                 loader.classList.add("hidden");
-
-                if (!dbRows || dbRows.length === 0) {
-                    wrapper.innerHTML = `<div class="metrics-loading">No logged peaks found for selected muscle category filters.</div>`;
-                    return;
-                }
-
-                const groups = dbRows.reduce((acc, row) => {
-                    if (!acc[row.exercise_name]) acc[row.exercise_name] = [];
-                    acc[row.exercise_name].push(row);
-                    return acc;
-                }, {});
-
-                Object.keys(groups).forEach((exerciseName, index) => {
-                    const exerciseData = groups[exerciseName];
-                    const canvasId = `chart-canvas-${index}`;
-                    
-                    // Logic to find Personal Best (PB) for this exercise
-                    const pb = exerciseData.reduce((max, cur) => (cur.peak_weight_kg > max.peak_weight_kg) ? cur : max, exerciseData[0]);
-
-                    const cardHtml = `
-                        <div class="chart-card-wrapper">
-                            <div class="chart-card-title">${exerciseName}</div>
-                            <div style="color:#0070f3; font-size:0.8rem; font-weight:800; margin-bottom:5px;">
-                                PB: ${pb.peak_weight_kg}kg × ${pb.reps_completed} reps
-                            </div>
-                            <div class="chart-container">
-                                <canvas id="${canvasId}"></canvas>
-                            </div>
-                        </div>
-                    `;
-                    wrapper.insertAdjacentHTML('beforeend', cardHtml);
-
-                    const ctx = document.getElementById(canvasId).getContext('2d');
-                    const dates = exerciseData.map(d => d.session_date);
-                    const loads = exerciseData.map(d => d.peak_weight_kg);
-                    const reps = exerciseData.map(d => d.reps_completed);
-
-                    activeChartInstances[canvasId] = new Chart(ctx, {
+                if (!dbRows || dbRows.length === 0) { wrapper.innerHTML = `<div class="metrics-loading">No data found.</div>`; return; }
+                const groups = dbRows.reduce((acc, row) => { if (!acc[row.exercise_name]) acc[row.exercise_name] = []; acc[row.exercise_name].push(row); return acc; }, {});
+                Object.keys(groups).forEach((name, i) => {
+                    const data = groups[name]; const pb = data.reduce((max, cur) => (cur.peak_weight_kg > max.peak_weight_kg) ? cur : max, data[0]); const canvasId = `chart-${i}`;
+                    wrapper.insertAdjacentHTML('beforeend', `<div class="chart-card-wrapper"><div class="chart-card-title">${name}</div><div style="color:#0070f3; font-size:0.8rem; font-weight:800; margin-bottom:5px;">PB: ${pb.peak_weight_kg}kg × ${pb.reps_completed} reps</div><div class="chart-container"><canvas id="${canvasId}"></canvas></div></div>`);
+                    activeChartInstances[canvasId] = new Chart(document.getElementById(canvasId).getContext('2d'), {
                         type: 'bar',
-                        data: {
-                            labels: dates,
-                            datasets: [{
-                                data: loads,
-                                backgroundColor: '#0070f3',
-                                borderColor: '#0051b3',
-                                borderWidth: 1,
-                                borderRadius: 4,
-                                reps: reps
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { color: '#64748b', font: { size: 9 } },
-                                    title: { display: true, text: 'Mass (kg)', color: '#64748b', font: { size: 9, weight: 'bold' } }
-                                },
-                                x: {
-                                    grid: { display: false },
-                                    ticks: { color: '#64748b', font: { size: 9 } }
-                                }
-                            },
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            return ` Peak Lift: ${context.raw}kg × ${reps[context.dataIndex]} reps`;
-                                        }
-                                    }
-                                },
-                                datalabels: {
-                                    display: true,
-                                    color: '#ffffff',
-                                    anchor: 'center',
-                                    align: 'center',
-                                    font: { weight: 'bold', size: 10 },
-                                    formatter: (value, context) => {
-                                        return `${context.dataset.reps[context.dataIndex]} reps`;
-                                    }
-                                }
-                            }
-                        }
+                        data: { labels: data.map(d => d.session_date), datasets: [{ data: data.map(d => d.peak_weight_kg), backgroundColor: '#0070f3', reps: data.map(d => d.reps_completed) }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, datalabels: { color: '#000', font: { weight: 'bold', size: 10 }, align: 'end', anchor: 'end', rotation: -90, formatter: (v, c) => `${c.dataset.reps[c.dataIndex]} reps` } }, scales: { y: { beginAtZero: true, suggestedMax: Math.max(...data.map(d => d.peak_weight_kg)) * 1.2 } } }
                     });
                 });
-
-            } catch (err) {
-                console.error(err);
-                loader.textContent = "Error loading bar chart historical analytics timeline rows.";
-            }
-        }
-
-        function liveCalculateMaxBadge(exerciseId, isCardio) {
-            const badge = document.getElementById(`max-badge-${exerciseId}`);
-            if (isCardio) return;
-
-            const wInput = parseFloat(document.getElementById(`input-w-${exerciseId}`).value) || 0;
-            const rInput = parseInt(document.getElementById(`input-r-${exerciseId}`).value) || 0;
-
-            if (wInput <= 0 || rInput <= 0) {
-                badge.classList.add('hidden');
-                return;
-            }
-
-            const calculatedMax = Math.round(wInput * (1 + (rInput / 30)));
-            badge.textContent = `Est. 1RM: ${calculatedMax}kg`;
-            badge.classList.remove('hidden');
-        }
-
-        function updateUndoButtonUI() {
-            const undoBtn = document.getElementById("undo-btn");
-            const hasLogs = localLogsMemory.some(log => log.athlete === activeAthlete);
-
-            if (hasLogs) {
-                undoBtn.style.opacity = "1";
-                undoBtn.style.pointerEvents = "auto";
-            } else {
-                undoBtn.style.opacity = "0.4";
-                undoBtn.style.pointerEvents = "none";
-            }
-        }
-
-        function undoLastSetLocal() {
-            let lastIndex = -1;
-            for (let i = localLogsMemory.length - 1; i >= 0; i--) {
-                if (localLogsMemory[i].athlete === activeAthlete) {
-                    lastIndex = i;
-                    break;
-                }
-            }
-
-            if (lastIndex === -1) return;
-
-            const removedLog = localLogsMemory[lastIndex];
-            localLogsMemory.splice(lastIndex, 1);
-            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-
-            calculateLocalVolume();
-            updateUndoButtonUI();
-            updateSetCounterUI(removedLog.exercise_id);
-            updateLastSetDisplayUI(removedLog.exercise_id);
-            
-            document.getElementById('live-metrics-display').classList.add('hidden');
-            alert(`Undone: Removed last entry row tracking.`);
-        }
-
-        function renderMuscleFilters() {
-            const picker = document.getElementById('muscle-picker');
-            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
-            
-            picker.innerHTML = groups.map(group => `
-                <div>
-                    <input type="checkbox" id="muscle-${group}" class="muscle-chip" value="${group}" onchange="filterExercises()">
-                    <label for="muscle-${group}" class="muscle-label">${group}</label>
-                </div>
-            `).join('');
-        }
-
-        function renderExerciseCards() {
-            const grid = document.getElementById('exercise-grid');
-            
-            grid.innerHTML = fallbackExercises.map(ex => {
-                const isCardio = ex.muscle_group === 'Cardio';
-                const initialCount = getExerciseSetCount(ex.id);
-                const lastSetText = getExerciseLastSetString(ex.id, isCardio);
-                return `
-                    <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-header-row">
-                            <div class="exercise-name">${ex.exercise}<span id="set-counter-${ex.id}" class="set-counter-badge">${initialCount > 0 ? '(' + initialCount + ')' : ''}</span></div>
-                            <div id="max-badge-${ex.id}" class="live-max-badge hidden"></div>
-                        </div>
-                        <div id="last-set-container-${ex.id}" class="last-set-banner ${lastSetText ? '' : 'hidden'}">${lastSetText}</div>
-                        <div class="log-inputs">
-                            <div class="input-group">
-                                <label>${isCardio ? 'Duration (Mins)' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge('${ex.id}', ${isCardio})">
-                            </div>
-                            <div class="input-group ${isCardio ? 'hidden' : ''}">
-                                <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric" oninput="liveCalculateMaxBadge('${ex.id}', ${isCardio})">
-                            </div>
-                            <button class="btn-log" onclick="logSetLocal('${ex.id}', ${isCardio})">Log</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function getExerciseSetCount(exerciseId) {
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            return localLogsMemory.filter(log => log.athlete === activeAthlete && log.exercise_id === exerciseId && log.date === todayTimestamp).length;
-        }
-
-        function getExerciseLastSetString(exerciseId, isCardio) {
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            const matchingLogs = localLogsMemory.filter(log => log.athlete === activeAthlete && log.exercise_id === exerciseId && log.date === todayTimestamp);
-            if (matchingLogs.length === 0) return '';
-            
-            const lastLog = matchingLogs[matchingLogs.length - 1];
-            return isCardio ? `Last Entry: ${lastLog.weight} Mins` : `Last Set: ${lastLog.weight}kg × ${lastLog.reps}`;
-        }
-
-        function updateSetCounterUI(exerciseId) {
-            const badge = document.getElementById(`set-counter-${exerciseId}`);
-            const count = getExerciseSetCount(exerciseId);
-            badge.textContent = count > 0 ? `(${count})` : '';
-        }
-
-        function updateLastSetDisplayUI(exerciseId) {
-            const container = document.getElementById(`last-set-container-${exerciseId}`);
-            const exData = fallbackExercises.find(e => e.id === exerciseId);
-            const isCardio = exData ? exData.muscle_group === 'Cardio' : false;
-            const text = getExerciseLastSetString(exerciseId, isCardio);
-
-            if (text) {
-                container.textContent = text;
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
-            }
-        }
-
-        function filterExercises() {
-            const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
-            const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
-            
-            localStorage.setItem("gym_tracker_active_filters", JSON.stringify(selectedMuscles));
-
-            fallbackExercises.forEach(ex => {
-                const card = document.getElementById(`ex-card-${ex.id}`);
-                if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
-                    card.classList.remove('hidden');
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                fetchProgressionAnalytics();
-            }
-        }
-
-        function restorePersistentFilters() {
-            const savedFilters = localStorage.getItem("gym_tracker_active_filters");
-            if (!savedFilters) return;
-
-            const selectedMuscles = JSON.parse(savedFilters);
-            selectedMuscles.forEach(muscle => {
-                const checkbox = document.getElementById(`muscle-${muscle}`);
-                if (checkbox) checkbox.checked = true;
-            });
-            filterExercises();
-        }
-
-        function resetAllUiCountersAndFilters() {
-            fallbackExercises.forEach(ex => {
-                const badge = document.getElementById(`set-counter-${ex.id}`);
-                if (badge) badge.textContent = '';
-                const container = document.getElementById(`last-set-container-${ex.id}`);
-                if (container) container.classList.add('hidden');
-            });
-            localStorage.removeItem("gym_tracker_active_filters");
-            document.querySelectorAll('.muscle-chip').forEach(cb => cb.checked = false);
-            exerciseOrderSequence = [];
-            filterExercises();
-        }
-
-        function trackExerciseSequenceNumber(exerciseId) {
-            if (!exerciseOrderSequence.includes(exerciseId)) {
-                exerciseOrderSequence.push(exerciseId);
-            }
-            return exerciseOrderSequence.indexOf(exerciseId) + 1;
-        }
-
-        function logSetLocal(exerciseId, isCardio) {
-            const weightInput = document.getElementById(`input-w-${exerciseId}`);
-            const repsInput = document.getElementById(`input-r-${exerciseId}`);
-            const badge = document.getElementById(`max-badge-${exerciseId}`);
-
-            const weight = parseFloat(weightInput.value) || 0;
-            const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
-
-            if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
-
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            const allocatedSequence = trackExerciseSequenceNumber(exerciseId);
-            const movementName = fallbackExercises.find(e => e.id === exerciseId).exercise;
-
-            const newLogEntry = {
-                id: "log_" + Date.now(),
-                athlete: activeAthlete,
-                exercise_id: exerciseId,
-                weight: weight,
-                reps: reps,
-                date: todayTimestamp,
-                muscle_group: fallbackExercises.find(e => e.id === exerciseId).muscle_group,
-                exercise_order: allocatedSequence
-            };
-
-            localLogsMemory.push(newLogEntry);
-            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-
-            const liveMetricsDisplay = document.getElementById('live-metrics-display');
-            liveMetricsDisplay.innerHTML = isCardio 
-                ? `<strong>Last set</strong> - ${movementName} - ${weight} Mins` 
-                : `<strong>Last set</strong> - ${movementName} - ${weight}kg - ${reps} reps`;
-            liveMetricsDisplay.classList.remove('hidden');
-
-            if (!isCardio) repsInput.value = '';
-            weightInput.value = '';
-            badge.classList.add('hidden');
-
-            calculateLocalVolume();
-            updateUndoButtonUI();
-            updateSetCounterUI(exerciseId);
-            updateLastSetDisplayUI(exerciseId);
-        }
-
-        function calculateLocalVolume() {
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            
-            const totalVolume = localLogsMemory
-                .filter(log => log.athlete === activeAthlete && log.date === todayTimestamp && log.muscle_group !== 'Cardio')
-                .reduce((sum, log) => sum + (log.weight * log.reps), 0);
-
-            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
+            } catch (e) { console.error(e); }
         }
 
         async function endAndSyncSession() {
             const profileLogs = localLogsMemory.filter(log => log.athlete === activeAthlete);
-
-            if (profileLogs.length === 0) {
-                return alert("No data recorded in your current tracking session.");
-            }
-
-            if (!confirm(`Conclude current workout session and record logs for ${activeAthlete}?`)) return;
-
-            const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
-
-            if (!isCloudConnected) {
-                localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
-                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-                calculateLocalVolume();
-                updateUndoButtonUI();
-                resetAllUiCountersAndFilters();
-                document.getElementById('live-metrics-display').classList.add('hidden');
-                return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
-            }
-
+            if (profileLogs.length === 0) return alert("No logs.");
+            if (!confirm(`Sync session for ${activeAthlete}?`)) return;
             try {
-                const { data: userData, error: userErr } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('name', activeAthlete)
-                    .maybeSingle();
-
-                if (userErr || !userData) throw new Error("Athlete profile row missing from backend database configuration.");
-
-                const { data: sessionData, error: sessionErr } = await supabaseClient
-                    .from('workout_sessions')
-                    .insert([{ user_id: userData.id }])
-                    .select()
-                    .maybeSingle();
-
-                if (sessionErr || !sessionData) throw sessionErr;
-
-                const cloudInsertPayload = profileLogs.map(log => ({
-                    session_id: sessionData.id,
-                    exercise_id: log.exercise_id,
-                    weight: log.weight,
-                    reps: log.reps,
-                    exercise_order: log.exercise_order || 1
-                }));
-
-                const { error: logsErr } = await supabaseClient
-                    .from('set_logs')
-                    .insert(cloudInsertPayload);
-
-                if (logsErr) throw logsErr;
-
-                localLogsMemory = localLogsMemory.filter(log => log.athlete !== activeAthlete);
-                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-                
-                calculateLocalVolume();
-                updateUndoButtonUI();
-                resetAllUiCountersAndFilters();
-                fetchPreviousSessionVolume();
-                document.getElementById('live-metrics-display').classList.add('hidden');
-
-                alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
-
-                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    fetchProgressionAnalytics();
-                }
-
-            } catch (err) {
-                console.error("Cloud data delivery pipeline error:", err);
-                alert(`Sync failed: ${err.message || 'Network Timeout'}. Session data retained locally.`);
-            }
+                const { data: userData, error: userErr } = await supabaseClient.from('users').select('id').ilike('name', activeAthlete).maybeSingle();
+                if (userErr || !userData) throw new Error("Athlete profile not found in database.");
+                const { data: sessionData } = await supabaseClient.from('workout_sessions').insert([{ user_id: userData.id }]).select().single();
+                await supabaseClient.from('set_logs').insert(profileLogs.map(l => ({ session_id: sessionData.id, exercise_id: l.exercise_id, weight: l.weight, reps: l.reps, exercise_order: l.exercise_order })));
+                localLogsMemory = localLogsMemory.filter(l => l.athlete !== activeAthlete); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+                location.reload();
+            } catch(e) { alert(`Sync failed: ${e.message}`); }
         }
 
-        async function handleLogin() {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            const statusText = document.getElementById('gate-status-text');
-
-            if (!email || !password) return alert('Please enter email and password fields.');
-            statusText.textContent = "Connecting to pipeline...";
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                alert(`Authentication error structural reject: ${error.message}`);
-                statusText.textContent = "Cloud Connection Mode: Public Offline";
-            } else {
-                localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
-                showLoggedInUI();
-                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    fetchProgressionAnalytics();
-                }
-            }
-        }
-
-        function showLoggedInUI() {
-            document.getElementById('auth-logged-out').classList.add('hidden');
-            document.getElementById('auth-logged-in').classList.remove('hidden');
-            document.getElementById('gate-indicator-dot').classList.add('status-connected');
-            document.getElementById('gate-status-text').textContent = "✓ Cloud Connected | Live Sync Active";
-            
-            fetchPreviousSessionVolume();
-        }
-
-        function handleLogout() {
-            localStorage.removeItem("gym_tracker_auth_token");
-            document.getElementById('auth-logged-out').classList.remove('hidden');
-            document.getElementById('auth-logged-in').classList.add('hidden');
-            document.getElementById('gate-indicator-dot').classList.remove('status-connected');
-            document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
-            
-            Object.values(activeChartInstances).forEach(chart => {
-                if(chart) chart.destroy();
-            });
-            activeChartInstances = {};
-            document.getElementById("charts-wrapper-layout").innerHTML = "";
-            document.getElementById("prev-volume").textContent = "Fetching...";
-            document.getElementById('live-metrics-display').classList.add('hidden');
-        }
-
+        function handleUserChange() { activeAthlete = document.getElementById("user-select").value; localStorage.setItem("gym_tracker_active_athlete", activeAthlete); calculateLocalVolume(); updateUndoButtonUI(); fetchPreviousSessionVolume(); renderExerciseCards(); if (!document.getElementById("panel-metrics").classList.contains("hidden")) fetchProgressionAnalytics(); }
+        function switchTab(t) { document.getElementById('tab-track').className = 'tab-btn' + (t === 'track' ? ' active' : ''); document.getElementById('tab-metrics').className = 'tab-btn' + (t === 'metrics' ? ' active' : ''); document.getElementById('panel-track').classList.toggle('hidden', t !== 'track'); document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics'); if(t === 'metrics') fetchProgressionAnalytics(); }
+        async function fetchPreviousSessionVolume() { const display = document.getElementById("prev-volume"); try { const { data: u } = await supabaseClient.from('users').select('id').ilike('name', activeAthlete).maybeSingle(); if (!u) return; const { data: s } = await supabaseClient.from('workout_sessions').select('id').eq('user_id', u.id).order('date', { ascending: false }).limit(2); if (!s || s.length === 0) return; const sid = s.length > 1 ? s[1].id : s[0].id; const { data: l } = await supabaseClient.from('set_logs').select('weight, reps, exercise_id').eq('session_id', sid); display.textContent = `${l.reduce((sum, r) => { const m = fallbackExercises.find(ex => ex.id === r.exercise_id); return (m && m.muscle_group !== 'Cardio') ? sum + (r.weight * r.reps) : sum; }, 0).toLocaleString()} kg`; } catch (e) { display.textContent = "Offline"; } }
+        function logSetLocal(id, isC) { const w = parseFloat(document.getElementById(`input-w-${id}`).value); const r = isC ? 1 : parseInt(document.getElementById(`input-r-${id}`).value); if (!w || !r) return alert('Input metrics.'); localLogsMemory.push({ athlete: activeAthlete, exercise_id: id, weight: w, reps: r, date: new Date().toISOString().split('T')[0], muscle_group: fallbackExercises.find(e => e.id === id).muscle_group, exercise_order: trackExerciseSequenceNumber(id) }); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory)); calculateLocalVolume(); updateUndoButtonUI(); updateSetCounterUI(id); updateLastSetDisplayUI(id); }
+        function undoLastSetLocal() { localLogsMemory.pop(); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory)); location.reload(); }
+        function renderMuscleFilters() { const picker = document.getElementById('muscle-picker'); const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort(); picker.innerHTML = groups.map(g => `<div><input type="checkbox" id="muscle-${g}" class="muscle-chip" value="${g}" onchange="filterExercises()"><label for="muscle-${g}" class="muscle-label">${g}</label></div>`).join(''); }
+        function renderExerciseCards() { const grid = document.getElementById('exercise-grid'); grid.innerHTML = fallbackExercises.map(ex => `<div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}"><div class="exercise-header-row"><div class="exercise-name">${ex.exercise}<span id="set-counter-${ex.id}" class="set-counter-badge"></span></div><div id="max-badge-${ex.id}" class="live-max-badge hidden"></div></div><div id="last-set-container-${ex.id}" class="last-set-banner hidden"></div><div class="log-inputs"><div class="input-group"><label>${ex.muscle_group==='Cardio'?'Mins':'Weight'}</label><input type="number" id="input-w-${ex.id}" placeholder="0" oninput="liveCalculateMaxBadge('${ex.id}', ${ex.muscle_group==='Cardio'})"></div><div class="input-group ${ex.muscle_group==='Cardio'?'hidden':''}"><label>Reps</label><input type="number" id="input-r-${ex.id}" placeholder="0"></div><button class="btn-log" onclick="logSetLocal('${ex.id}', ${ex.muscle_group==='Cardio'})">Log</button></div></div>`).join(''); }
+        function filterExercises() { const mus = Array.from(document.querySelectorAll('.muscle-chip:checked')).map(c => c.value); localStorage.setItem("gym_tracker_active_filters", JSON.stringify(mus)); fallbackExercises.forEach(ex => document.getElementById(`ex-card-${ex.id}`).classList.toggle('hidden', mus.length > 0 && !mus.includes(ex.muscle_group))); }
+        function calculateLocalVolume() { const v = localLogsMemory.filter(l => l.athlete === activeAthlete && l.date === new Date().toISOString().split('T')[0] && l.muscle_group !== 'Cardio').reduce((s, l) => s + (l.weight * l.reps), 0); document.getElementById('total-volume').textContent = `${v.toLocaleString()} kg`; }
+        function updateUndoButtonUI() { const b = document.getElementById("undo-btn"); const h = localLogsMemory.some(l => l.athlete === activeAthlete); b.style.opacity = h ? "1" : "0.4"; b.style.pointerEvents = h ? "auto" : "none"; }
+        function updateSetCounterUI(id) { const c = localLogsMemory.filter(l => l.athlete === activeAthlete && l.exercise_id === id && l.date === new Date().toISOString().split('T')[0]).length; document.getElementById(`set-counter-${id}`).textContent = c > 0 ? `(${c})` : ''; }
+        function updateLastSetDisplayUI(id) { const c = document.getElementById(`last-set-container-${id}`); const l = localLogsMemory.filter(l => l.athlete === activeAthlete && l.exercise_id === id && l.date === new Date().toISOString().split('T')[0]); if (l.length > 0) { c.textContent = `Last: ${l[l.length-1].weight}${l[l.length-1].reps ? 'kg × '+l[l.length-1].reps : ' Mins'}`; c.classList.remove('hidden'); } else c.classList.add('hidden'); }
+        function liveCalculateMaxBadge(id, isC) { if (isC) return; const w = parseFloat(document.getElementById(`input-w-${id}`).value) || 0; const r = parseInt(document.getElementById(`input-r-${id}`).value) || 0; const b = document.getElementById(`max-badge-${id}`); if (w > 0 && r > 0) { b.textContent = `Est: ${Math.round(w * (1 + (r / 30)))}kg`; b.classList.remove('hidden'); } else b.classList.add('hidden'); }
+        function restorePersistentFilters() { const f = JSON.parse(localStorage.getItem("gym_tracker_active_filters") || "[]"); f.forEach(m => { const c = document.getElementById(`muscle-${m}`); if (c) c.checked = true; }); filterExercises(); }
+        function trackExerciseSequenceNumber(id) { if (!exerciseOrderSequence.includes(id)) exerciseOrderSequence.push(id); return exerciseOrderSequence.indexOf(id) + 1; }
+        async function handleLogin() { const { data, error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('auth-email').value, password: document.getElementById('auth-password').value }); if (error) alert(error.message); else { localStorage.setItem("gym_tracker_auth_token", data.session.access_token); showLoggedInUI(); } }
+        function showLoggedInUI() { document.getElementById('auth-logged-out').classList.add('hidden'); document.getElementById('auth-logged-in').classList.remove('hidden'); document.getElementById('gate-indicator-dot').classList.add('status-connected'); document.getElementById('gate-status-text').textContent = "✓ Cloud Connected"; }
+        function handleLogout() { localStorage.removeItem("gym_tracker_auth_token"); location.reload(); }
         window.onload = initLocalTracker;
     </script>
 </body>
