@@ -255,13 +255,39 @@
             if (profileLogs.length === 0) return alert("No logs.");
             if (!confirm(`Sync session for ${activeAthlete}?`)) return;
             try {
-                const { data: userData, error: userErr } = await supabaseClient.from('users').select('id').ilike('name', activeAthlete).maybeSingle();
-                if (userErr || !userData) throw new Error("Athlete profile not found in database.");
-                const { data: sessionData } = await supabaseClient.from('workout_sessions').insert([{ user_id: userData.id }]).select().single();
-                await supabaseClient.from('set_logs').insert(profileLogs.map(l => ({ session_id: sessionData.id, exercise_id: l.exercise_id, weight: l.weight, reps: l.reps, exercise_order: l.exercise_order })));
-                localLogsMemory = localLogsMemory.filter(l => l.athlete !== activeAthlete); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+                // 1. Get the authenticated user
+                const { data: { user }, error: authErr } = await supabaseClient.auth.getUser();
+                if (authErr || !user) throw new Error("You must be logged in to sync data.");
+
+                // 2. Create the session linked to the authenticated user's ID
+                const { data: sessionData, error: sessionErr } = await supabaseClient
+                    .from('workout_sessions')
+                    .insert([{ user_id: user.id }])
+                    .select()
+                    .single();
+
+                if (sessionErr) throw new Error("Failed to create session: " + sessionErr.message);
+
+                // 3. Insert logs
+                const { error: logsErr } = await supabaseClient
+                    .from('set_logs')
+                    .insert(profileLogs.map(l => ({ 
+                        session_id: sessionData.id, 
+                        exercise_id: l.exercise_id, 
+                        weight: l.weight, 
+                        reps: l.reps, 
+                        exercise_order: l.exercise_order 
+                    })));
+
+                if (logsErr) throw new Error("Failed to sync logs: " + logsErr.message);
+
+                localLogsMemory = localLogsMemory.filter(l => l.athlete !== activeAthlete); 
+                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
                 location.reload();
-            } catch(e) { alert(`Sync failed: ${e.message}`); }
+            } catch(e) {
+                console.error(e);
+                alert(`Sync failed: ${e.message}`);
+            }
         }
 
         function handleUserChange() { activeAthlete = document.getElementById("user-select").value; localStorage.setItem("gym_tracker_active_athlete", activeAthlete); calculateLocalVolume(); updateUndoButtonUI(); fetchPreviousSessionVolume(); renderExerciseCards(); if (!document.getElementById("panel-metrics").classList.contains("hidden")) fetchProgressionAnalytics(); }
