@@ -8,31 +8,42 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary-color: #0070f3; --success-color: #22c55e; --danger-color: #ef4444; --border-color: #e2e8f0; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 50px; }
         header { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
-        select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; font-weight: 600; height: 48px; }
-        .btn-end-session { background-color: var(--danger-color); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; height: 48px; text-transform: uppercase; }
+        select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; color: var(--text-color); font-weight: 600; height: 48px; }
+        .btn-end-session { background-color: var(--danger-color); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; height: 48px; }
         .tab-menu { display: flex; gap: 4px; margin-bottom: 15px; }
         .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-size: 0.95rem; font-weight: 700; text-align: center; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; }
         .tab-btn.active { background-color: var(--primary-color); color: white; }
         .stats-panel { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .stats-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .stats-title { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; }
+        .stats-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; }
+        .last-set-text { font-size: 0.85rem; margin-top: 8px; opacity: 0.9; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px; }
+        .btn-undo { background-color: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; }
+        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .muscle-chip { display: none; }
+        .muscle-label { padding: 8px 14px; background-color: #f1f5f9; border-radius: 20px; font-size: 0.85rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .muscle-chip:checked + .muscle-label { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
         .exercise-grid { display: grid; gap: 12px; }
         .exercise-card { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
-        .exercise-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
+        .exercise-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: #1e293b; }
         .log-inputs { display: flex; gap: 10px; align-items: center; }
+        .input-group { flex: 1; }
         input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; text-align: center; }
-        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-        .hidden { display: none !important; }
+        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; }
         .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
+        .btn-gate { background-color: #334155; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <header>
         <div class="header-top">
             <select id="user-select" onchange="handleUserChange()"><option value="Ginge">Ginge</option><option value="Swift">Swift</option></select>
-            <button class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
+            <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
         </div>
         <div class="tab-menu">
             <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Tracking</button>
@@ -42,20 +53,26 @@
 
     <div id="panel-track">
         <div class="stats-panel">
-            <div id="total-volume" class="stats-value">0 kg</div>
-            <button class="btn-undo" onclick="undoLastSetLocal()">Undo</button>
+            <div class="stats-row">
+                <div><div class="stats-title">Today's Volume</div><div id="total-volume" class="stats-value">0 kg</div></div>
+                <button type="button" class="btn-undo" onclick="undoLastSetLocal()">Undo</button>
+            </div>
+            <div id="last-session-vol-display" class="last-set-text">Last Session: Loading...</div>
+            <div id="last-set-display" class="last-set-text">Last Set: None</div>
         </div>
+        <div id="muscle-picker" class="muscle-picker"></div>
         <div id="exercise-grid" class="exercise-grid"></div>
     </div>
 
     <div id="panel-metrics" class="hidden">
-        <canvas id="chart-volume"></canvas>
+        <select id="chart-exercise-select" onchange="loadPerformanceCharts()"><option value="">-- All Exercises --</option></select>
+        <div style="padding:15px;"><canvas id="chart-volume"></canvas></div>
     </div>
 
     <div class="db-gate-box">
         <input type="email" id="auth-email" placeholder="Email">
         <input type="password" id="auth-password" placeholder="Password">
-        <button class="btn-gate" onclick="handleLogin()">Connect Cloud</button>
+        <button type="button" class="btn-gate" onclick="handleLogin()">Establish Cloud Connection</button>
     </div>
 
     <script>
@@ -66,39 +83,52 @@
 
         let localLogsMemory = JSON.parse(localStorage.getItem("gym_tracker_local_logs") || "[]");
 
+        async function init() {
+            renderExerciseCards();
+            renderMuscleFilters();
+            const sel = document.getElementById("chart-exercise-select");
+            sel.innerHTML += fallbackExercises.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
+        }
+
+        async function endAndSyncSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) return alert("You must be logged in to sync data to the cloud.");
+            alert("Authenticated session confirmed. Syncing...");
+        }
+
         function renderExerciseCards() {
             const grid = document.getElementById('exercise-grid');
             grid.innerHTML = fallbackExercises.map(ex => `
                 <div class="exercise-card">
                     <div class="exercise-name">${ex.exercise}</div>
                     <div class="log-inputs">
-                        <input type="number" id="w-${ex.id}" placeholder="kg">
-                        <input type="number" id="r-${ex.id}" placeholder="reps">
+                        <div class="input-group"><label>Weight</label><input type="number" id="w-${ex.id}" placeholder="0"></div>
+                        <div class="input-group"><label>Reps</label><input type="number" id="r-${ex.id}" placeholder="0"></div>
                         <button class="btn-log" onclick="logSet(${ex.id})">Log</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        async function endAndSyncSession() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) return alert("You must be logged in to sync to the cloud.");
-            alert("Authenticated. Syncing...");
-        }
-
         function logSet(id) {
             const weight = document.getElementById(`w-${id}`).value;
             const reps = document.getElementById(`r-${id}`).value;
             if(!weight || !reps) return;
-            localLogsMemory.push({ id, weight, reps });
+            localLogsMemory.push({ id, weight, reps, date: new Date().toISOString() });
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-            alert("Set logged locally.");
+            alert("Logged locally.");
         }
 
         function undoLastSetLocal() { localLogsMemory.pop(); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory)); }
         function switchTab(t) {
             document.getElementById('panel-track').classList.toggle('hidden', t !== 'track');
             document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics');
+        }
+
+        function renderMuscleFilters() {
+            const picker = document.getElementById('muscle-picker');
+            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
+            picker.innerHTML = groups.map(g => `<div><input type="checkbox" id="m-${g}" class="muscle-chip"><label for="m-${g}" class="muscle-label">${g}</label></div>`).join('');
         }
 
         async function handleLogin() {
@@ -108,7 +138,7 @@
             if (error) alert(error.message); else alert("Connection established.");
         }
 
-        window.onload = renderExerciseCards;
+        window.onload = init;
     </script>
 </body>
 </html>
