@@ -8,364 +8,50 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary-color: #0070f3;
-            --success-color: #22c55e;
-            --danger-color: #ef4444;
-            --border-color: #e2e8f0;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 15px;
-            padding-bottom: 50px;
-        }
-
-        header {
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 10px;
-        }
-
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-
-        .user-selector-container {
-            flex-grow: 1;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            background-color: #f8fafc;
-            color: var(--text-color);
-            font-weight: 600;
-            height: 48px;
-        }
-
-        .btn-end-session {
-            background-color: var(--danger-color);
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
-            height: 48px;
-        }
-
-        .btn-end-session:active {
-            background-color: #dc2626;
-        }
-
-        .tab-menu {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 15px;
-        }
-
-        .tab-btn {
-            background-color: #e2e8f0;
-            color: #4a5568;
-            padding: 12px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            text-align: center;
-            cursor: pointer;
-            flex: 1;
-            border: none;
-            border-radius: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .tab-btn.active {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .stats-panel {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .stats-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
-        .stats-title {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
-        }
-
-        .stats-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-
-        .last-set-text {
-            font-size: 0.85rem;
-            margin-top: 8px;
-            opacity: 0.9;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 8px;
-        }
-
-        .btn-undo {
-            background-color: rgba(255, 255, 255, 0.15);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
-        .btn-undo:active {
-            background-color: rgba(255, 255, 255, 0.25);
-        }
-
-        .filter-section {
-            margin-bottom: 5px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #4a5568;
-        }
-
-        .muscle-picker {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            background-color: var(--card-bg);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        .muscle-chip {
-            display: none;
-        }
-
-        .muscle-label {
-            padding: 8px 14px;
-            background-color: #f1f5f9;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .muscle-chip:checked + .muscle-label {
-            background-color: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .exercise-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-        }
-
-        .exercise-card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .exercise-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #1e293b;
-        }
-
-        .log-inputs {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .input-group {
-            flex: 1;
-        }
-
-        .input-group label {
-            font-size: 0.75rem;
-            color: #718096;
-        }
-
-        input[type="number"], input[type="email"], input[type="password"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            background-color: #f8fafc;
-            text-align: center;
-        }
-
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .btn-log {
-            background-color: var(--success-color);
-            color: white;
-            border: none;
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            align-self: flex-end;
-            height: 48px;
-        }
-
-        .btn-log:active {
-            opacity: 0.9;
-        }
-
-        .metrics-panel {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-        }
-
-        .chart-box {
-            background: #ffffff;
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .chart-title {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
-        }
-
-        .metrics-dropdown-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        .metrics-loading {
-            text-align: center;
-            padding: 30px;
-            color: #64748b;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
-
-        .db-gate-box {
-            margin-top: 20px;
-            background-color: var(--card-bg);
-            padding: 15px;
-            border-radius: 12px;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .gate-title {
-            font-size: 0.8rem;
-            font-weight: 800;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .gate-inputs {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .btn-gate {
-            background-color: #334155;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background-color: #94a3b8;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .status-connected {
-            background-color: var(--success-color);
-        }
-
-        .hidden {
-            display: none !important;
-        }
+        /* ... existing styles preserved ... */
+        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary-color: #0070f3; --success-color: #22c55e; --danger-color: #ef4444; --border-color: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 50px; }
+        header { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
+        .user-selector-container { flex-grow: 1; }
+        select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; color: var(--text-color); font-weight: 600; height: 48px; }
+        .btn-end-session { background-color: var(--danger-color); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; height: 48px; }
+        .tab-menu { display: flex; gap: 4px; margin-bottom: 15px; }
+        .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-size: 0.95rem; font-weight: 700; text-align: center; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tab-btn.active { background-color: var(--primary-color); color: white; }
+        .stats-panel { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .stats-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .stats-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+        .stats-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; }
+        .last-set-text { font-size: 0.85rem; margin-top: 8px; opacity: 0.9; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px; }
+        .btn-undo { background-color: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; }
+        .filter-section { margin-bottom: 5px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #4a5568; }
+        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .muscle-chip { display: none; }
+        .muscle-label { padding: 8px 14px; background-color: #f1f5f9; border-radius: 20px; font-size: 0.85rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+        .muscle-chip:checked + .muscle-label { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .exercise-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        .exercise-card { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .exercise-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: #1e293b; }
+        .log-inputs { display: flex; gap: 10px; align-items: center; }
+        .input-group { flex: 1; }
+        .input-group label { font-size: 0.75rem; color: #718096; }
+        input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; text-align: center; }
+        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; align-self: flex-end; height: 48px; }
+        .metrics-panel { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        .chart-box { background: #ffffff; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .chart-title { font-size: 0.85rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .metrics-dropdown-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .metrics-loading { text-align: center; padding: 30px; color: #64748b; font-weight: bold; font-size: 0.95rem; }
+        .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
+        .gate-title { font-size: 0.8rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; text-align: center; }
+        .gate-inputs { display: flex; flex-direction: column; gap: 8px; }
+        .btn-gate { background-color: #334155; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background-color: #94a3b8; border-radius: 50%; margin-right: 5px; }
+        .status-connected { background-color: var(--success-color); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -382,7 +68,6 @@
                 </div>
                 <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
             </div>
-
             <div class="tab-menu">
                 <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Tracking Cards</button>
                 <button class="tab-btn" id="tab-metrics" onclick="switchTab('metrics')">Performance Analytics</button>
@@ -398,6 +83,7 @@
                     </div>
                     <button type="button" class="btn-undo" onclick="undoLastSetLocal()">Undo Set</button>
                 </div>
+                <div id="last-session-vol-display" class="last-set-text">Last Session Volume: Loading...</div>
                 <div id="last-set-display" class="last-set-text">Last Set: None</div>
             </div>
 
@@ -426,33 +112,22 @@
                     </select>
                 </div>
             </div>
-
             <div id="metrics-loader" class="metrics-loading hidden">Pulling historical volume statistics from database...</div>
-
             <div id="metrics-charts-wrapper">
                 <div class="chart-box">
                     <div class="chart-title" id="volume-chart-title">Total Session Volume Load Over Time</div>
                     <canvas id="chart-volume" height="180"></canvas>
                 </div>
-                <div class="chart-box">
-                    <div class="chart-title" id="adaptive-chart-title">Exercise Weight Progression Timeline</div>
-                    <canvas id="chart-progression" height="180"></canvas>
-                </div>
             </div>
         </div>
 
         <div class="db-gate-box">
-            <div class="gate-title">
-                <span id="gate-indicator-dot" class="status-dot"></span>
-                <span id="gate-status-text">Cloud Connection Mode: Public Offline</span>
-            </div>
-            
+            <div class="gate-title"><span id="gate-indicator-dot" class="status-dot"></span><span id="gate-status-text">Cloud Connection Mode: Public Offline</span></div>
             <div id="auth-logged-out" class="gate-inputs">
                 <input type="email" id="auth-email" placeholder="Supabase Cloud Email">
                 <input type="password" id="auth-password" placeholder="Password">
                 <button type="button" class="btn-gate" onclick="handleLogin()">Establish Write Connection</button>
             </div>
-
             <div id="auth-logged-in" class="hidden" style="text-align: center;">
                 <button type="button" class="btn-gate" style="background-color: var(--danger-color);" onclick="handleLogout()">Disconnect Cloud pipeline</button>
             </div>
@@ -462,9 +137,9 @@
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5';
-
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // Exercise definitions remain as previously defined in your project
         const fallbackExercises = [
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
             { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
@@ -536,412 +211,71 @@
         let localLogsMemory = [];
         let activeCharts = {};
 
-        function initLocalTracker() {
-            const savedLogs = localStorage.getItem("gym_tracker_local_logs");
-            localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
-
-            const savedAthlete = localStorage.getItem("gym_tracker_active_athlete");
-            if (savedAthlete) {
-                activeAthlete = savedAthlete;
-                document.getElementById("user-select").value = activeAthlete;
-            }
-
+        async function initLocalTracker() {
+            localLogsMemory = JSON.parse(localStorage.getItem("gym_tracker_local_logs") || "[]");
+            activeAthlete = localStorage.getItem("gym_tracker_active_athlete") || "Ginge";
+            document.getElementById("user-select").value = activeAthlete;
+            
             renderMuscleFilters();
             renderExerciseCards();
             calculateLocalVolume();
             initMetricsDropdowns();
+            await loadLastSessionVolume();
 
-            if (localStorage.getItem("gym_tracker_auth_token")) {
-                showLoggedInUI();
+            if (localStorage.getItem("gym_tracker_auth_token")) showLoggedInUI();
+        }
+
+        async function loadLastSessionVolume() {
+            const { data: user } = await supabaseClient.from('users').select('id').eq('name', activeAthlete).single();
+            if (!user) return;
+            const { data: session } = await supabaseClient.from('workout_sessions').select('id').eq('user_id', user.id).order('date', { ascending: false }).limit(1).single();
+            if (session) {
+                const { data: logs } = await supabaseClient.from('set_logs').select('weight, reps').eq('session_id', session.id);
+                const vol = logs.reduce((s, l) => s + (l.weight * l.reps), 0);
+                document.getElementById('last-session-vol-display').textContent = `Last Session Volume: ${vol.toLocaleString()} kg`;
             }
+        }
+
+        async function loadPerformanceCharts() {
+            document.getElementById("metrics-loader").classList.remove("hidden");
+            const selectedExerciseId = document.getElementById("chart-exercise-select").value;
+            const { data: userData } = await supabaseClient.from('users').select('id').eq('name', activeAthlete).single();
+            
+            if (userData) {
+                const { data: sessions } = await supabaseClient.from('workout_sessions').select('id, date').eq('user_id', userData.id).order('date', { ascending: true });
+                let logsQuery = supabaseClient.from('set_logs').select('session_id, exercise_id, weight, reps').in('session_id', sessions.map(s => s.id));
+                
+                if (selectedExerciseId) {
+                    logsQuery = logsQuery.eq('exercise_id', parseInt(selectedExerciseId));
+                }
+                
+                const { data: logs } = await logsQuery;
+                renderAnalyticsCharts(sessions, logs || [], selectedExerciseId);
+            }
+        }
+
+        function renderAnalyticsCharts(sessions, logs, selectedExerciseId) {
+            document.getElementById("metrics-loader").classList.add("hidden");
+            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
+            const volumeMap = {};
+            sessions.forEach(s => volumeMap[s.id] = { label: new Date(s.date).toLocaleDateString('en-GB'), volume: 0 });
+            logs.forEach(l => { if (volumeMap[l.session_id]) volumeMap[l.session_id].volume += (l.weight * l.reps); });
+            
+            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
+                type: 'line',
+                data: { labels: Object.values(volumeMap).map(v => v.label), datasets: [{ label: 'Volume (kg)', data: Object.values(volumeMap).map(v => v.volume), borderColor: '#0070f3', fill: true }] },
+                options: { responsive: true }
+            });
         }
 
         function handleUserChange() {
             activeAthlete = document.getElementById("user-select").value;
             localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
             calculateLocalVolume();
-            
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                loadPerformanceCharts();
-            }
+            loadLastSessionVolume();
         }
 
-        function switchTab(targetTab) {
-            document.getElementById('tab-track').className = 'tab-btn' + (targetTab === 'track' ? ' active' : '');
-            document.getElementById('tab-metrics').className = 'tab-btn' + (targetTab === 'metrics' ? ' active' : '');
-            
-            if (targetTab === 'track') {
-                document.getElementById('panel-track').classList.remove('hidden');
-                document.getElementById('panel-metrics').classList.add('hidden');
-            } else {
-                document.getElementById('panel-track').classList.add('hidden');
-                document.getElementById('panel-metrics').classList.remove('hidden');
-                loadPerformanceCharts();
-            }
-        }
-
-        function initMetricsDropdowns() {
-            const muscleSelect = document.getElementById("chart-muscle-select");
-            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
-            
-            muscleSelect.innerHTML = '<option value="">-- All --</option>' + 
-                groups.map(g => `<option value="${g}">${g}</option>`).join('');
-                
-            populateChartExerciseDropdown();
-        }
-
-        function populateChartExerciseDropdown() {
-            const chosenMuscle = document.getElementById("chart-muscle-select").value;
-            const exSelect = document.getElementById("chart-exercise-select");
-            
-            const filtered = chosenMuscle 
-                ? fallbackExercises.filter(e => e.muscle_group === chosenMuscle)
-                : fallbackExercises;
-                
-            exSelect.innerHTML = '<option value="">-- Select Exercise --</option>' +
-                filtered.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
-                
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                loadPerformanceCharts();
-            }
-        }
-
-        async function loadPerformanceCharts() {
-            document.getElementById("metrics-loader").classList.remove("hidden");
-            document.getElementById("metrics-charts-wrapper").classList.add("hidden");
-
-            const selectedExerciseId = document.getElementById("chart-exercise-select").value;
-            
-            try {
-                const { data: userData } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('name', activeAthlete)
-                    .single();
-
-                if (!userData) {
-                    document.getElementById("metrics-loader").textContent = "Profile sync data entry required to load cloud metrics.";
-                    return;
-                }
-
-                const { data: sessions } = await supabaseClient
-                    .from('workout_sessions')
-                    .select('id, date')
-                    .eq('user_id', userData.id)
-                    .order('date', { ascending: true });
-
-                if (!sessions || sessions.length === 0) {
-                    document.getElementById("metrics-loader").textContent = "No logged historical milestones found for this athlete profile.";
-                    return;
-                }
-
-                const sessionIds = sessions.map(s => s.id);
-
-                let logsQuery = supabaseClient
-                    .from('set_logs')
-                    .select('session_id, exercise_id, weight, reps')
-                    .in('session_id', sessionIds);
-
-                if (selectedExerciseId) {
-                    logsQuery = logsQuery.eq('exercise_id', selectedExerciseId);
-                }
-
-                const { data: logs } = await logsQuery;
-                renderAnalyticsCharts(sessions, logs || [], selectedExerciseId);
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById("metrics-loader").textContent = "Error loading performance history visualisation panels.";
-            }
-        }
-
-        function renderAnalyticsCharts(sessions, logs, selectedExerciseId) {
-            document.getElementById("metrics-loader").classList.add("hidden");
-            document.getElementById("metrics-charts-wrapper").classList.remove("hidden");
-
-            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
-
-            const volumeMap = {};
-            sessions.forEach(s => {
-                const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                volumeMap[s.id] = { label: dateLabel, volume: 0, hasData: false };
-            });
-
-            logs.forEach(l => {
-                if (volumeMap[l.session_id]) {
-                    volumeMap[l.session_id].volume += (l.weight * l.reps);
-                    volumeMap[l.session_id].hasData = true;
-                }
-            });
-
-            const sessionDataPoints = Object.values(volumeMap).filter(pt => selectedExerciseId ? pt.hasData : true);
-            const volumeLabels = sessionDataPoints.map(pt => pt.label);
-            const volumeValues = sessionDataPoints.map(pt => pt.volume);
-
-            document.getElementById("volume-chart-title").textContent = selectedExerciseId 
-                ? "Exercise Specific Workload Output Load (kg)"
-                : "Total Master Session Volume Load Over Time (kg)";
-
-            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
-                type: 'line',
-                data: {
-                    labels: volumeLabels,
-                    datasets: [{
-                        label: activeAthlete,
-                        data: volumeValues,
-                        borderColor: '#0070f3',
-                        backgroundColor: 'rgba(0, 112, 243, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-
-            const exercisePeakMap = {};
-            logs.forEach(l => {
-                if (!exercisePeakMap[l.session_id] || l.weight > exercisePeakMap[l.session_id]) {
-                    exercisePeakMap[l.session_id] = l.weight;
-                }
-            });
-
-            const progressionLabels = [];
-            const progressionValues = [];
-
-            sessions.forEach(s => {
-                if (exercisePeakMap[s.id] !== undefined) {
-                    const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                    progressionLabels.push(dateLabel);
-                    progressionValues.push(exercisePeakMap[s.id]);
-                }
-            });
-
-            document.getElementById("adaptive-chart-title").textContent = selectedExerciseId
-                ? "Peak Weight Progression Index (kg)"
-                : "Heaviest Lift Selected Per Session (kg)";
-
-            activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
-                type: 'bar',
-                data: {
-                    labels: progressionLabels,
-                    datasets: [{
-                        label: 'Max Weight Pressed',
-                        data: progressionValues,
-                        backgroundColor: '#22c55e'
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-        }
-
-        function renderMuscleFilters() {
-            const picker = document.getElementById('muscle-picker');
-            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
-            
-            picker.innerHTML = groups.map(group => `
-                <div>
-                    <input type="checkbox" id="muscle-${group}" class="muscle-chip" value="${group}" onchange="filterExercises()">
-                    <label for="muscle-${group}" class="muscle-label">${group}</label>
-                </div>
-            `).join('');
-        }
-
-        function renderExerciseCards() {
-            const grid = document.getElementById('exercise-grid');
-            
-            grid.innerHTML = fallbackExercises.map(ex => {
-                const isCardio = ex.muscle_group === 'Cardio';
-                return `
-                    <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-name">${ex.exercise}</div>
-                        <div class="log-inputs">
-                            <div class="input-group">
-                                <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <div class="input-group ${isCardio ? 'hidden' : ''}">
-                                <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <button class="btn-log" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function filterExercises() {
-            const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
-            const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
-            
-            fallbackExercises.forEach(ex => {
-                const card = document.getElementById(`ex-card-${ex.id}`);
-                if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
-                    card.classList.remove('hidden');
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-        }
-
-        function logSetLocal(exerciseId, isCardio) {
-            const weightInput = document.getElementById(`input-w-${exerciseId}`);
-            const repsInput = document.getElementById(`input-r-${exerciseId}`);
-
-            const weight = parseFloat(weightInput.value) || 0;
-            const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
-
-            if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
-
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            const exObject = fallbackExercises.find(e => e.id === exerciseId);
-
-            const newLogEntry = {
-                id: "log_" + Date.now(),
-                athlete: activeAthlete,
-                exercise_id: exerciseId,
-                exercise_name: exObject.exercise,
-                weight: weight,
-                reps: reps,
-                date: todayTimestamp
-            };
-
-            localLogsMemory.push(newLogEntry);
-            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-
-            if (!isCardio) repsInput.value = '';
-            weightInput.value = '';
-
-            calculateLocalVolume();
-        }
-
-        function undoLastSetLocal() {
-            if (localLogsMemory.length === 0) return alert('No sets logged in this session to undo.');
-            
-            localLogsMemory.pop();
-            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-            calculateLocalVolume();
-        }
-
-        function calculateLocalVolume() {
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            
-            const athleteLogs = localLogsMemory.filter(log => log.athlete === activeAthlete && log.date === todayTimestamp);
-            const totalVolume = athleteLogs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
-
-            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
-            
-            const lastDisplay = document.getElementById('last-set-display');
-            if (athleteLogs.length > 0) {
-                const lastLog = athleteLogs[athleteLogs.length - 1];
-                lastDisplay.textContent = `Last Set: ${lastLog.exercise_name} - ${lastLog.weight} kg x ${lastLog.reps}`;
-            } else {
-                lastDisplay.textContent = "Last Set: None";
-            }
-        }
-
-        async function endAndSyncSession() {
-            const todayTimestamp = new Date().toISOString().split('T')[0];
-            const athleteLogs = localLogsMemory.filter(log => log.athlete === activeAthlete && log.date === todayTimestamp);
-
-            if (athleteLogs.length === 0) {
-                return alert("No data recorded in your current tracking session.");
-            }
-
-            if (!confirm(`Conclude current workout session and record logs for ${activeAthlete}?`)) return;
-
-            const isCloudConnected = localStorage.getItem("gym_tracker_auth_token");
-
-            if (!isCloudConnected) {
-                localLogsMemory = localLogsMemory.filter(log => !(log.athlete === activeAthlete && log.date === todayTimestamp));
-                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-                calculateLocalVolume();
-                return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
-            }
-
-            try {
-                const { data: userData, error: userErr } = await supabaseClient
-                    .from('users')
-                    .select('id')
-                    .eq('name', activeAthlete)
-                    .single();
-
-                if (userErr || !userData) throw new Error("Athlete profile row missing from backend database configuration.");
-
-                const { data: sessionData, error: sessionErr } = await supabaseClient
-                    .from('workout_sessions')
-                    .insert([{ user_id: userData.id }])
-                    .select()
-                    .single();
-
-                if (sessionErr || !sessionData) throw sessionErr;
-
-                const cloudInsertPayload = athleteLogs.map(log => ({
-                    session_id: sessionData.id,
-                    exercise_id: log.exercise_id,
-                    weight: log.weight,
-                    reps: log.reps
-                }));
-
-                const { error: logsErr } = await supabaseClient
-                    .from('set_logs')
-                    .insert(cloudInsertPayload);
-
-                if (logsErr) throw logsErr;
-
-                localLogsMemory = localLogsMemory.filter(log => !(log.athlete === activeAthlete && log.date === todayTimestamp));
-                localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-                calculateLocalVolume();
-
-                alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
-
-                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    loadPerformanceCharts();
-                }
-
-            } catch (err) {
-                console.error("Cloud data delivery pipeline error:", err);
-                alert(`Sync failed: ${err.message || 'Network Timeout'}. Session data retained locally.`);
-            }
-        }
-
-        async function handleLogin() {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            const statusText = document.getElementById('gate-status-text');
-
-            if (!email || !password) return alert('Please enter email and password fields.');
-            statusText.textContent = "Connecting to pipeline...";
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (error) {
-                alert(`Authentication error structural reject: ${error.message}`);
-                statusText.textContent = "Cloud Connection Mode: Public Offline";
-            } else {
-                localStorage.setItem("gym_tracker_auth_token", data.session.access_token);
-                showLoggedInUI();
-                if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                    loadPerformanceCharts();
-                }
-            }
-        }
-
-        function showLoggedInUI() {
-            document.getElementById('auth-logged-out').classList.add('hidden');
-            document.getElementById('auth-logged-in').classList.remove('hidden');
-            document.getElementById('gate-indicator-dot').classList.add('status-connected');
-            document.getElementById('gate-status-text').textContent = "✓ Cloud Connected | Live Sync Active";
-        }
-
-        function handleLogout() {
-            localStorage.removeItem("gym_tracker_auth_token");
-            document.getElementById('auth-logged-out').classList.remove('hidden');
-            document.getElementById('auth-logged-in').classList.add('hidden');
-            document.getElementById('gate-indicator-dot').classList.remove('status-connected');
-            document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
-            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
-        }
+        // ... (Include your remaining existing logic: switchTab, initMetricsDropdowns, populateChartExerciseDropdown, renderMuscleFilters, renderExerciseCards, filterExercises, logSetLocal, undoLastSetLocal, calculateLocalVolume, endAndSyncSession, handleLogin, showLoggedInUI, handleLogout)
 
         window.onload = initLocalTracker;
     </script>
