@@ -324,14 +324,27 @@
             font-size: 0.95rem;
         }
 
+        .chart-card-wrapper {
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .chart-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 4px;
+        }
+
         .chart-container {
             position: relative;
             width: 100%;
-            margin-top: 15px;
-            background-color: #f8fafc;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
+            height: 180px;
         }
 
         .db-gate-box {
@@ -439,13 +452,14 @@
             <div class="exercise-header-row" style="margin-bottom: 5px;">
                 <div class="exercise-name" style="font-size: 1.2rem; font-weight: 800;">Session Peak Progressions</div>
             </div>
-            <p id="metrics-subtitle-text" style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Displaying highest single-set weight tracked per session for selected muscle groups.</p>
+            
+            <div id="live-metrics-display" style="font-size: 0.85rem; font-weight: 700; color: var(--success-color); background-color: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.2); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; text-align: center;" class="hidden"></div>
+            
+            <p id="metrics-subtitle-text" style="font-size: 0.8rem; color: #64748b; margin-bottom: 15px;">Displaying isolated metric profiles for selected tracking cards.</p>
 
             <div id="metrics-loader" class="metrics-loading hidden">Querying historical session peak rows...</div>
 
-            <div id="chart-wrapper" class="chart-container">
-                <canvas id="progressionChart"></canvas>
-            </div>
+            <div id="charts-wrapper-layout"></div>
         </div>
 
         <div class="db-gate-box">
@@ -467,7 +481,6 @@
     </div>
 
     <script>
-        // Register the datalabels plugin globally for Chart.js
         Chart.register(ChartDataLabels);
 
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
@@ -562,7 +575,7 @@
         let activeAthlete = "Ginge";
         let localLogsMemory = [];
         let exerciseOrderSequence = [];
-        let progressionChartInstance = null;
+        let activeChartInstances = {};
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
@@ -636,6 +649,7 @@
                     return;
                 }
 
+                // Removed date barrier so current test entries act cleanly as historical log references
                 const { data: lastSessions, error: sessErr } = await supabaseClient
                     .from('workout_sessions')
                     .select('id, date')
@@ -677,11 +691,15 @@
 
         async function fetchProgressionAnalytics() {
             const loader = document.getElementById("metrics-loader");
-            const chartWrapper = document.getElementById("chart-wrapper");
+            const wrapper = document.getElementById("charts-wrapper-layout");
             const subtitleText = document.getElementById("metrics-subtitle-text");
 
+            // Clear old graph references cleanly
+            Object.values(activeChartInstances).forEach(chart => chart.destroy());
+            activeChartInstances = {};
+            wrapper.innerHTML = "";
+
             loader.classList.remove("hidden");
-            chartWrapper.classList.add("hidden");
 
             const savedFilters = localStorage.getItem("gym_tracker_active_filters");
             const selectedMuscles = savedFilters ? JSON.parse(savedFilters) : [];
@@ -702,98 +720,94 @@
                     .order('session_date', { ascending: true });
 
                 if (error) throw error;
-
                 loader.classList.add("hidden");
-                chartWrapper.classList.remove("hidden");
 
-                renderBarChartProgression(dbRows);
+                if (!dbRows || dbRows.length === 0) {
+                    wrapper.innerHTML = `<div class="metrics-loading">No logged peaks found for selected muscle category filters.</div>`;
+                    return;
+                }
+
+                // Group rows by unique exercise names to generate isolated charts
+                const groups = dbRows.reduce((acc, row) => {
+                    if (!acc[row.exercise_name]) acc[row.exercise_name] = [];
+                    acc[row.exercise_name].push(row);
+                    return acc;
+                }, {});
+
+                Object.keys(groups).forEach((exerciseName, index) => {
+                    const exerciseData = groups[exerciseName];
+                    const canvasId = `chart-canvas-${index}`;
+
+                    const cardHtml = `
+                        <div class="chart-card-wrapper">
+                            <div class="chart-card-title">${exerciseName}</div>
+                            <div class="chart-container">
+                                <canvas id="${canvasId}"></canvas>
+                            </div>
+                        </div>
+                    `;
+                    wrapper.insertAdjacentHTML('beforeend', cardHtml);
+
+                    const ctx = document.getElementById(canvasId).getContext('2d');
+                    const dates = exerciseData.map(d => d.session_date);
+                    const loads = exerciseData.map(d => d.peak_weight_kg);
+                    const reps = exerciseData.map(d => d.reps_completed);
+
+                    activeChartInstances[canvasId] = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: dates,
+                            datasets: [{
+                                data: loads,
+                                backgroundColor: '#0070f3',
+                                borderColor: '#0051b3',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                reps: reps
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#64748b', font: { size: 9 } },
+                                    title: { display: true, text: 'Mass (kg)', color: '#64748b', font: { size: 9, weight: 'bold' } }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#64748b', font: { size: 9 } }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return ` Peak Lift: ${context.raw}kg × ${reps[context.dataIndex]} reps`;
+                                        }
+                                    }
+                                },
+                                datalabels: {
+                                    display: true,
+                                    color: '#ffffff',
+                                    anchor: 'center',
+                                    align: 'center',
+                                    font: { weight: 'bold', size: 10 },
+                                    formatter: (value, context) => {
+                                        return `${value}kg × ${context.dataset.reps[context.dataIndex]}`;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
 
             } catch (err) {
                 console.error(err);
                 loader.textContent = "Error loading bar chart historical analytics timeline rows.";
             }
-        }
-
-        function renderBarChartProgression(dataRows) {
-            const ctx = document.getElementById('progressionChart').getContext('2d');
-
-            if (progressionChartInstance) {
-                progressionChartInstance.destroy();
-            }
-
-            if (dataRows.length === 0) {
-                ctx.clearRect(0, 0, 400, 400);
-                document.getElementById("metrics-loader").classList.remove("hidden");
-                document.getElementById("metrics-loader").textContent = "No logged sets found for the active muscle category filters.";
-                document.getElementById("chart-wrapper").classList.add("hidden");
-                return;
-            }
-
-            const chartLabels = dataRows.map(r => r.exercise_name.split(' (')[0]);
-            const chartDataValues = dataRows.map(r => r.peak_weight_kg);
-            const repCounts = dataRows.map(r => r.reps_completed);
-
-            progressionChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [{
-                        label: 'Peak Weight (kg)',
-                        data: chartDataValues,
-                        backgroundColor: '#0070f3',
-                        borderColor: '#0051b3',
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        reps: repCounts
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#64748b' },
-                            title: { display: true, text: 'Mass (kg)', color: '#64748b', font: { weight: 'bold' } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            title: {
-                                display: true,
-                                text: 'Exercise',
-                                color: '#64748b',
-                                font: { weight: 'bold' }
-                            },
-                            ticks: { color: '#64748b', maxRotation: 45, minRotation: 0, font: { size: 10 } }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const index = context.dataIndex;
-                                    return ` Best Set: ${context.raw}kg × ${repCounts[index]} reps`;
-                                },
-                                afterLabel: function(context) {
-                                    return ` Session Date: ${dataRows[context.dataIndex].session_date}`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            display: true,
-                            color: '#ffffff',
-                            anchor: 'center',
-                            align: 'center',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (value, context) => {
-                                const reps = context.dataset.reps[context.dataIndex];
-                                return `${value}kg × ${reps}`;
-                            }
-                        }
-                    }
-                }
-            });
         }
 
         function liveCalculateMaxBadge(exerciseId, isCardio) {
@@ -845,6 +859,8 @@
             updateUndoButtonUI();
             updateSetCounterUI(removedLog.exercise_id);
             updateLastSetDisplayUI(removedLog.exercise_id);
+            
+            document.getElementById('live-metrics-display').classList.add('hidden');
             alert(`Undone: Removed last entry row tracking.`);
         }
 
@@ -958,7 +974,7 @@
 
         function resetAllUiCountersAndFilters() {
             fallbackExercises.forEach(ex => {
-                const badge = document.getElementById(`set-counter-${ex.ex.id}`);
+                const badge = document.getElementById(`set-counter-${ex.id}`);
                 if (badge) badge.textContent = '';
                 const container = document.getElementById(`last-set-container-${ex.id}`);
                 if (container) container.classList.add('hidden');
@@ -988,6 +1004,7 @@
 
             const todayTimestamp = new Date().toISOString().split('T')[0];
             const allocatedSequence = trackExerciseSequenceNumber(exerciseId);
+            const movementName = fallbackExercises.find(e => e.id === exerciseId).exercise;
 
             const newLogEntry = {
                 id: "log_" + Date.now(),
@@ -1002,6 +1019,13 @@
 
             localLogsMemory.push(newLogEntry);
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+
+            // Instant alert verification for Last Set Entered display panel
+            const liveMetricsDisplay = document.getElementById('live-metrics-display');
+            liveMetricsDisplay.textContent = isCardio 
+                ? `Last Entered: ${movementName} → ${weight} Mins` 
+                : `Last Entered: ${movementName} → ${weight}kg × ${reps}`;
+            liveMetricsDisplay.classList.remove('hidden');
 
             if (!isCardio) repsInput.value = '';
             weightInput.value = '';
@@ -1040,6 +1064,7 @@
                 calculateLocalVolume();
                 updateUndoButtonUI();
                 resetAllUiCountersAndFilters();
+                document.getElementById('live-metrics-display').classList.add('hidden');
                 return alert("Workout session ended. Data cleared locally (Cloud Sync bypassed).");
             }
 
@@ -1081,6 +1106,7 @@
                 updateUndoButtonUI();
                 resetAllUiCountersAndFilters();
                 fetchPreviousSessionVolume();
+                document.getElementById('live-metrics-display').classList.add('hidden');
 
                 alert(`Success! Session workout logs successfully exported to Supabase for ${activeAthlete}.`);
 
@@ -1131,11 +1157,12 @@
             document.getElementById('auth-logged-in').classList.add('hidden');
             document.getElementById('gate-indicator-dot').classList.remove('status-connected');
             document.getElementById('gate-status-text').textContent = "Cloud Connection Mode: Public Offline";
-            if (progressionChartInstance) {
-                progressionChartInstance.destroy();
-                progressionChartInstance = null;
-            }
+            
+            Object.values(activeChartInstances).forEach(chart => chart.destroy());
+            activeChartInstances = {};
+            document.getElementById("charts-wrapper-layout").innerHTML = "";
             document.getElementById("prev-volume").textContent = "Fetching...";
+            document.getElementById('live-metrics-display').classList.add('hidden');
         }
 
         window.onload = initLocalTracker;
