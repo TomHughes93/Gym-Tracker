@@ -480,7 +480,6 @@
     </div>
 
     <script>
-        // Register the datalabels plugin globally for Chart.js
         Chart.register(ChartDataLabels);
 
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
@@ -724,10 +723,16 @@
                 Object.keys(groups).forEach((exerciseName, index) => {
                     const exerciseData = groups[exerciseName];
                     const canvasId = `chart-canvas-${index}`;
+                    
+                    // Logic to find Personal Best (PB) for this exercise
+                    const pb = exerciseData.reduce((max, cur) => (cur.peak_weight_kg > max.peak_weight_kg) ? cur : max, exerciseData[0]);
 
                     const cardHtml = `
                         <div class="chart-card-wrapper">
                             <div class="chart-card-title">${exerciseName}</div>
+                            <div style="color:#0070f3; font-size:0.8rem; font-weight:800; margin-bottom:5px;">
+                                PB: ${pb.peak_weight_kg}kg × ${pb.reps_completed} reps
+                            </div>
                             <div class="chart-container">
                                 <canvas id="${canvasId}"></canvas>
                             </div>
@@ -783,7 +788,7 @@
                                     align: 'center',
                                     font: { weight: 'bold', size: 10 },
                                     formatter: (value, context) => {
-                                        return `${value}kg × ${context.dataset.reps[context.dataIndex]}`;
+                                        return `${context.dataset.reps[context.dataIndex]} reps`;
                                     }
                                 }
                             }
