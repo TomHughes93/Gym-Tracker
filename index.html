@@ -296,7 +296,7 @@
             const w = parseFloat(wInput.value); 
             const r = isC ? 1 : parseInt(rInput.value); 
             
-            if (!w || !r) return alert('Input metrics.'); 
+            if (!w || (!r && !isC)) return alert('Input metrics.'); 
             
             localLogsMemory.push({ 
                 athlete: activeAthlete, 
