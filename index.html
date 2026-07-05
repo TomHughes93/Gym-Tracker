@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,133 +8,69 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --bg-color: #f4f6f9;
-            --card-bg: #ffffff;
-            --text-color: #333333;
-            --primary-color: #0070f3;
-            --success-color: #22c55e;
-            --danger-color: #ef4444;
-            --border-color: #e2e8f0;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding: 15px; padding-bottom: 50px; }
-        header { background-color: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 10px; }
-        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
-        .user-selector-container { flex-grow: 1; }
-        select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; color: var(--text-color); font-weight: 600; height: 48px; }
-        .btn-end-session { background-color: var(--danger-color); color: white; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; height: 48px; }
-        .tab-menu { display: flex; gap: 4px; margin-bottom: 15px; }
-        .tab-btn { background-color: #e2e8f0; color: #4a5568; padding: 12px; font-size: 0.95rem; font-weight: 700; text-align: center; cursor: pointer; flex: 1; border: none; border-radius: 8px; text-transform: uppercase; }
-        .tab-btn.active { background-color: var(--primary-color); color: white; }
-        .stats-panel { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .stats-title { font-size: 0.8rem; text-transform: uppercase; opacity: 0.8; }
-        .stats-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; }
-        .last-set-text { font-size: 0.85rem; margin-top: 8px; opacity: 0.9; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px; }
-        .btn-undo { background-color: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform: uppercase; }
-        .muscle-picker { display: flex; flex-wrap: wrap; gap: 8px; background-color: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .muscle-chip { display: none; }
-        .muscle-label { padding: 8px 14px; background-color: #f1f5f9; border-radius: 20px; font-size: 0.85rem; cursor: pointer; }
-        .muscle-chip:checked + .muscle-label { background-color: var(--primary-color); color: white; }
-        .exercise-grid { display: grid; gap: 12px; }
-        .exercise-card { background-color: var(--card-bg); border-radius: 12px; padding: 15px; border: 1px solid var(--border-color); }
-        .exercise-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; }
-        .log-inputs { display: flex; gap: 10px; align-items: center; }
-        .input-group { flex: 1; }
-        input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; background-color: #f8fafc; text-align: center; }
-        .btn-log { background-color: var(--success-color); color: white; border: none; padding: 12px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 48px; }
-        .db-gate-box { margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 12px; border: 1px dashed #cbd5e1; }
-        .btn-gate { background-color: #334155; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --text-color: #333333; --primary-color: #0070f3; --success-color: #22c55e; --danger-color: #ef4444; --border-color: #e2e8f0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); padding: 15px; }
+        header { background-color: var(--card-bg); padding: 15px; border-radius: 12px; margin-bottom: 10px; }
+        .stats-panel { background: #1e293b; color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .exercise-card { background: white; padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 10px; }
+        .log-inputs { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        input { padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; width: 80px; }
+        button { padding: 10px; border: none; border-radius: 6px; cursor: pointer; }
         .hidden { display: none !important; }
-        .status-dot { display: inline-block; width: 8px; height: 8px; background-color: #94a3b8; border-radius: 50%; margin-right: 5px; }
-        .status-connected { background-color: var(--success-color); }
     </style>
 </head>
 <body>
-    <div id="app-content">
-        <header>
-            <div class="header-top">
-                <div class="user-selector-container">
-                    <label for="user-select">Select Active Athlete</label>
-                    <select id="user-select" onchange="handleUserChange()">
-                        <option value="Ginge">Ginge</option>
-                        <option value="Swift">Swift</option>
-                    </select>
-                </div>
-                <button type="button" class="btn-end-session" onclick="endAndSyncSession()">End Session</button>
-            </div>
-            <div class="tab-menu">
-                <button class="tab-btn active" id="tab-track" onclick="switchTab('track')">Tracking</button>
-                <button class="tab-btn" id="tab-metrics" onclick="switchTab('metrics')">Performance Analytics</button>
-            </div>
-        </header>
+    <header>
+        <select id="user-select" onchange="handleUserChange()"><option value="Ginge">Ginge</option><option value="Swift">Swift</option></select>
+        <button onclick="endAndSyncSession()">End Session</button>
+        <div class="tab-menu"><button onclick="switchTab('track')">Tracking</button><button onclick="switchTab('metrics')">Analytics</button></div>
+    </header>
 
-        <div id="panel-track">
-            <div class="stats-panel">
-                <div class="stats-row">
-                    <div>
-                        <div class="stats-title">Today's Total Weight</div>
-                        <div id="total-volume" class="stats-value">0 kg</div>
-                    </div>
-                    <button type="button" class="btn-undo" onclick="undoLastSetLocal()">Undo Set</button>
-                </div>
-                <div id="last-set-display" class="last-set-text">Last Set: None</div>
-            </div>
-            <div id="muscle-picker" class="muscle-picker"></div>
-            <div id="exercise-grid" class="exercise-grid"></div>
+    <div id="panel-track">
+        <div class="stats-panel">
+            <div id="total-volume">Today: 0 kg</div>
+            <div id="vol-prev">Previous: 0 kg</div>
+            <div id="last-set-display">Last Set: None</div>
+            <button onclick="undoLastSetLocal()">Undo Set</button>
         </div>
+        <div id="muscle-picker" class="muscle-picker"></div>
+        <div id="exercise-grid"></div>
+    </div>
 
-        <div id="panel-metrics" class="metrics-panel hidden">
-            <div class="metrics-dropdown-group">
-                <select id="chart-exercise-select" onchange="loadPerformanceCharts()"><option value="">-- Select Exercise --</option></select>
-            </div>
-            <div class="chart-box">
-                <div class="chart-title" id="adaptive-chart-title">Peak Weight Progression</div>
-                <canvas id="chart-progression" height="180"></canvas>
-            </div>
-        </div>
-
-        <div class="db-gate-box">
-            <div id="auth-logged-out">
-                <input type="email" id="auth-email" placeholder="Email">
-                <input type="password" id="auth-password" placeholder="Password">
-                <button type="button" class="btn-gate" onclick="handleLogin()">Establish Connection</button>
-            </div>
-            <div id="auth-logged-in" class="hidden">
-                <button type="button" class="btn-gate" onclick="handleLogout()">Disconnect</button>
-            </div>
-        </div>
+    <div id="panel-metrics" class="hidden">
+        <select id="chart-exercise-select" onchange="loadPerformanceCharts()"><option value="">-- Select --</option></select>
+        <canvas id="chart-progression"></canvas>
     </div>
 
     <script>
         const SUPABASE_URL = 'https://jxfqbycnvcvtmmfgprqr.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_djfFpwP4wKpBgHg3XYCApg_cHSaKvA5';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
+
         const fallbackExercises = [
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" }, { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" }, { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" }, { id: 4, exercise: "Cable Row (Wide)", muscle_group: "Back" }, { id: 5, exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" }, { id: 6, exercise: "T-Bar Row (Narrow)", muscle_group: "Back" }, { id: 7, exercise: "T-Bar Row (Wide)", muscle_group: "Back" }, { id: 8, exercise: "Pull Ups (Weighted)", muscle_group: "Back" }, { id: 9, exercise: "Machine Row (Narrow)", muscle_group: "Back" }, { id: 10, exercise: "Machine Row (Wide)", muscle_group: "Back" }, { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" }, { id: 12, exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" }, { id: 13, exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" }, { id: 14, exercise: "Standing Bar Curl", muscle_group: "Biceps" }, { id: 15, exercise: "Cable Rope Curl", muscle_group: "Biceps" }, { id: 16, exercise: "Cable Bar Curl", muscle_group: "Biceps" }, { id: 17, exercise: "Cable Handle Curl", muscle_group: "Biceps" }, { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" }, { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" }, { id: 20, exercise: "Flat Bench Press (Plate Loaded)", muscle_group: "Chest" }, { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" }, { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" }, { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" }, { id: 24, exercise: "Incline Bench Press (Cable)", muscle_group: "Chest" }, { id: 25, exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" }, { id: 26, exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" }, { id: 27, exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" }, { id: 28, exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" }, { id: 29, exercise: "Pec Dec", muscle_group: "Chest" }, { id: 30, exercise: "Cable Flys (High to Low)", muscle_group: "Chest" }, { id: 31, exercise: "Cable Flys (Low to High)", muscle_group: "Chest" }, { id: 32, exercise: "Dips (Weighted)", muscle_group: "Chest" }, { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" }, { id: 34, exercise: "Extension Machine", muscle_group: "Triceps" }, { id: 35, exercise: "Rope Extension", muscle_group: "Triceps" }, { id: 36, exercise: "Handle Pull Down", muscle_group: "Triceps" }, { id: 37, exercise: "Bar Pull Down", muscle_group: "Triceps" }, { id: 38, exercise: "Skull Crushers", muscle_group: "Triceps" }, { id: 39, exercise: "Overhead Extension", muscle_group: "Triceps" }, { id: 40, exercise: "V-Bar Push Down", muscle_group: "Triceps" }, { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" }, { id: 42, exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" }, { id: 43, exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" }, { id: 44, exercise: "Overhead Press (Cable)", muscle_group: "Shoulders" }, { id: 45, exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" }, { id: 46, exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" }, { id: 47, exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" }, { id: 48, exercise: "Front Raise (Plate)", muscle_group: "Shoulders" }, { id: 49, exercise: "Front Raise (Cable)", muscle_group: "Shoulders" }, { id: 50, exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" }, { id: 51, exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" }, { id: 52, exercise: "Barbell Shrugs", muscle_group: "Shoulders" }, { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" }, { id: 54, exercise: "Standing Calf Raise", muscle_group: "Legs" }, { id: 55, exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" }, { id: 56, exercise: "Quad Extension (Cable)", muscle_group: "Legs" }, { id: 57, exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" }, { id: 58, exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" }, { id: 59, exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" }, { id: 60, exercise: "Leg Press (Machine)", muscle_group: "Legs" }, { id: 61, exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" }, { id: 62, exercise: "Treadmill", muscle_group: "Cardio" }, { id: 63, exercise: "Spinning Bike", muscle_group: "Cardio" }, { id: 64, exercise: "Seated Bike", muscle_group: "Cardio" }
         ];
 
         let activeAthlete = localStorage.getItem("gym_tracker_active_athlete") || "Ginge";
         let localLogsMemory = JSON.parse(localStorage.getItem("gym_tracker_local_logs") || "[]");
-        let activeCharts = {};
-
+        
         function init() {
             document.getElementById("user-select").value = activeAthlete;
             renderExerciseCards();
             renderMuscleFilters();
             updateTotals();
             populateChartExerciseDropdown();
+            loadPrevSession();
         }
 
         function renderExerciseCards() {
-            const grid = document.getElementById('exercise-grid');
-            grid.innerHTML = fallbackExercises.map(ex => `
+            document.getElementById('exercise-grid').innerHTML = fallbackExercises.map(ex => `
                 <div class="exercise-card" id="ex-card-${ex.id}">
                     <div class="exercise-name">${ex.exercise}</div>
                     <div class="log-inputs">
-                        <div class="input-group"><label>Weight</label><input type="number" id="w-${ex.id}"></div>
-                        <div class="input-group"><label>Reps</label><input type="number" id="r-${ex.id}"></div>
+                        <input type="number" id="w-${ex.id}" placeholder="kg">
+                        <input type="number" id="r-${ex.id}" placeholder="reps">
                         <button class="btn-log" onclick="logSet(${ex.id})">Log</button>
                     </div>
                 </div>
@@ -146,63 +83,58 @@
             if (!w || !r) return;
             localLogsMemory.push({ exercise_id: id, weight: w, reps: r, date: new Date().toISOString() });
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
+            
+            // Clear inputs
+            document.getElementById(`w-${id}`).value = '';
+            document.getElementById(`r-${id}`).value = '';
             updateTotals();
         }
 
         function updateTotals() {
             const total = localLogsMemory.reduce((sum, log) => sum + (log.weight * log.reps), 0);
-            document.getElementById('total-volume').innerText = total.toLocaleString() + " kg";
+            document.getElementById('total-volume').innerText = "Today: " + total.toLocaleString() + " kg";
             const last = localLogsMemory[localLogsMemory.length - 1];
             document.getElementById('last-set-display').innerText = last ? `Last: ${last.weight}kg x ${last.reps}` : "Last Set: None";
         }
 
-        function undoLastSetLocal() { localLogsMemory.pop(); localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory)); updateTotals(); }
+        async function loadPrevSession() {
+            const { data: userData } = await supabaseClient.from('users').select('id').eq('name', activeAthlete).single();
+            const { data: sessions } = await supabaseClient.from('workout_sessions').select('id, set_logs(weight, reps)').eq('user_id', userData.id).order('date', {ascending: false});
+            if (sessions && sessions[1]) {
+                const prev = sessions[1].set_logs.reduce((sum, l) => sum + (l.weight * l.reps), 0);
+                document.getElementById('vol-prev').innerText = "Previous: " + prev.toLocaleString() + " kg";
+            }
+        }
 
         async function endAndSyncSession() {
-            const { data: { user } } = await supabaseClient.auth.getUser();
             const { data: userData } = await supabaseClient.from('users').select('id').eq('name', activeAthlete).single();
-            const { data: session } = await supabaseClient.from('workout_sessions').insert([{ user_id: userData.id }]).select().single();
-            const payload = localLogsMemory.map(l => ({ session_id: session.id, exercise_id: String(l.exercise_id), weight: l.weight, reps: l.reps }));
+            const { data: session } = await supabaseClient.from('workout_sessions').insert([{ user_id: userData.id, date: new Date().toISOString() }]).select().single();
+            const payload = localLogsMemory.map((l, i) => ({ session_id: session.id, exercise_id: String(l.exercise_id), weight: l.weight, reps: l.reps, exercise_order: i + 1 }));
             await supabaseClient.from('set_logs').insert(payload);
             localLogsMemory = []; localStorage.setItem("gym_tracker_local_logs", "[]"); updateTotals(); alert("Synced!");
         }
 
-        function populateChartExerciseDropdown() {
-            const select = document.getElementById('chart-exercise-select');
-            select.innerHTML = fallbackExercises.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
+        function renderMuscleFilters() {
+            const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))];
+            document.getElementById('muscle-picker').innerHTML = groups.map(g => `<div><input type="checkbox" id="m-${g}" class="muscle-chip" onchange="filter()"><label class="muscle-label" for="m-${g}">${g}</label></div>`).join('');
         }
 
-        async function loadPerformanceCharts() {
-            const exId = document.getElementById('chart-exercise-select').value;
-            const { data: userData } = await supabaseClient.from('users').select('id').eq('name', activeAthlete).single();
-            const { data: logs } = await supabaseClient.from('set_logs').select('*, workout_sessions!inner(user_id, date)').eq('workout_sessions.user_id', userData.id).eq('exercise_id', String(exId));
-            
-            const sessionPeak = {};
-            logs.forEach(l => {
-                if(!sessionPeak[l.session_id] || l.weight > sessionPeak[l.session_id]) sessionPeak[l.session_id] = l.weight;
-            });
-            
-            const labels = Object.keys(sessionPeak);
-            const values = Object.values(sessionPeak);
-            
-            if(activeCharts['progression']) activeCharts['progression'].destroy();
-            activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
-                type: 'bar',
-                data: { labels: labels, datasets: [{ label: 'Peak Weight (kg)', data: values, backgroundColor: '#22c55e' }] },
-                options: { responsive: true }
-            });
+        function filter() {
+            const checked = Array.from(document.querySelectorAll('.muscle-chip:checked')).map(c => c.id.replace('m-', ''));
+            fallbackExercises.forEach(ex => document.getElementById(`ex-card-${ex.id}`).classList.toggle('hidden', checked.length > 0 && !checked.includes(ex.muscle_group)));
         }
 
-        async function handleLogin() {
-            const email = document.getElementById('auth-email').value;
-            const pass = document.getElementById('auth-password').value;
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-            if (error) alert(error.message); else { document.getElementById('auth-logged-out').classList.add('hidden'); document.getElementById('auth-logged-in').classList.remove('hidden'); }
+        function switchTab(t) {
+            document.getElementById('panel-track').classList.toggle('hidden', t !== 'track');
+            document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics');
         }
 
-        function handleLogout() { supabaseClient.auth.signOut(); location.reload(); }
-        function switchTab(t) { document.getElementById('panel-track').classList.toggle('hidden', t !== 'track'); document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics'); }
-        function handleUserChange() { activeAthlete = document.getElementById('user-select').value; localStorage.setItem("gym_tracker_active_athlete", activeAthlete); updateTotals(); }
+        function handleUserChange() {
+            activeAthlete = document.getElementById("user-select").value;
+            localStorage.setItem("gym_tracker_active_athlete", activeAthlete);
+            updateTotals();
+            loadPrevSession();
+        }
 
         window.onload = init;
     </script>
