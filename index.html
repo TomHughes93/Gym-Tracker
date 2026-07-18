@@ -572,8 +572,8 @@
                     <canvas id="chart-volume" height="180"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title">Best Ever Set Per Muscle Group</div>
-                    <canvas id="chart-best-sets" height="180"></canvas>
+                    <div class="chart-title" id="adaptive-chart-title">Best Ever Set Per Muscle Group</div>
+                    <canvas id="chart-progression" height="180"></canvas>
                 </div>
             </div>
         </div>
@@ -687,8 +687,8 @@
         ];
 
         // Runtime state
-        let currentUser = null;         // { id, name } — set once logged in, null in guest mode
-        let usersMap = {};              // { Ginge: uuid, Swift: uuid } — for analytics lookups
+        let currentUser = null;          // { id, name } — set once logged in, null in guest mode
+        let usersMap = {};                // { Ginge: uuid, Swift: uuid } — for analytics lookups
         let localLogsMemory = [];
         let activeCharts = {};
         let retryTimerHandle = null;
@@ -1284,17 +1284,21 @@
 
                 const sessionIds = sessions.map(s => s.id);
 
-                let logsQuery = supabaseClient
+                // Pull ALL logs for this athlete (unfiltered) — the "Best Ever
+                // Set Per Muscle Group" chart always looks across every
+                // exercise regardless of the movement filter, so it needs the
+                // full set. The volume chart then filters this client-side
+                // when a specific movement is selected.
+                const { data: allLogs } = await supabaseClient
                     .from('set_logs')
-                    .select('session_id, exercise_id, weight, reps, exercises(muscle_group, exercise_name)')
+                    .select('session_id, exercise_id, weight, reps')
                     .in('session_id', sessionIds);
 
-                if (selectedExerciseId) {
-                    logsQuery = logsQuery.eq('exercise_id', selectedExerciseId);
-                }
+                const logsForVolume = selectedExerciseId
+                    ? (allLogs || []).filter(l => String(l.exercise_id) === String(selectedExerciseId))
+                    : (allLogs || []);
 
-                const { data: logs } = await logsQuery;
-                renderAnalyticsCharts(sessions, logs || [], selectedExerciseId, viewingAthlete);
+                renderAnalyticsCharts(sessions, logsForVolume, allLogs || [], selectedExerciseId, viewingAthlete);
 
             } catch (err) {
                 console.error(err);
@@ -1302,20 +1306,20 @@
             }
         }
 
-        function renderAnalyticsCharts(sessions, logs, selectedExerciseId, viewingAthlete) {
+        function renderAnalyticsCharts(sessions, logsForVolume, allLogs, selectedExerciseId, viewingAthlete) {
             document.getElementById("metrics-loader").classList.add("hidden");
             document.getElementById("metrics-charts-wrapper").classList.remove("hidden");
 
             Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
 
-            // 1. Total Session Volume Line Chart
+            // ---- Chart 1: Total Session Volume Over Time ----
             const volumeMap = {};
             sessions.forEach(s => {
                 const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 volumeMap[s.id] = { label: dateLabel, volume: 0, hasData: false };
             });
 
-            logs.forEach(l => {
+            logsForVolume.forEach(l => {
                 if (volumeMap[l.session_id]) {
                     volumeMap[l.session_id].volume += (l.weight * l.reps);
                     volumeMap[l.session_id].hasData = true;
@@ -1346,48 +1350,70 @@
                 options: { responsive: true, scales: { y: { beginAtZero: true } } }
             });
 
-            // 2. NEW: Best Ever Set Per Muscle Group (Bar Chart)
-            const bestSets = {};
-            logs.forEach(log => {
-                const muscle = log.exercises?.muscle_group;
-                if (!muscle) return;
-                if (!bestSets[muscle] || log.weight > bestSets[muscle].weight) {
-                    bestSets[muscle] = { weight: log.weight, reps: log.reps, exercise: log.exercises.exercise_name };
+            // ---- Chart 2: Best Ever Set Per Muscle Group ----
+            // "Best" is ranked by weight lifted first (60kg x 10 beats 55kg x
+            // 12), with reps only used to break a tie on identical weight.
+            // Always computed from the athlete's full history across every
+            // exercise, ignoring the movement filter above (Cardio is
+            // excluded since its "weight" field is really minutes, not load).
+            const bestByMuscle = {};
+
+            allLogs.forEach(l => {
+                const ex = fallbackExercises.find(e => e.id === l.exercise_id);
+                if (!ex || ex.muscle_group === 'Cardio') return;
+
+                const current = bestByMuscle[ex.muscle_group];
+                const isBetter = !current ||
+                    l.weight > current.weight ||
+                    (l.weight === current.weight && l.reps > current.reps);
+
+                if (isBetter) {
+                    bestByMuscle[ex.muscle_group] = {
+                        weight: l.weight,
+                        reps: l.reps,
+                        exercise: ex.exercise
+                    };
                 }
             });
 
-            const dataArr = Object.keys(bestSets).map(m => ({ muscle: m, ...bestSets[m] }));
+            const muscleGroupLabels = Object.keys(bestByMuscle).sort();
+            const bestWeights = muscleGroupLabels.map(g => bestByMuscle[g].weight);
+            const bestReps = muscleGroupLabels.map(g => bestByMuscle[g].reps);
+            const bestExercises = muscleGroupLabels.map(g => bestByMuscle[g].exercise);
 
-            activeCharts['bestSets'] = new Chart(document.getElementById('chart-best-sets'), {
+            document.getElementById("adaptive-chart-title").textContent =
+                `${viewingAthlete} — Best Ever Set Per Muscle Group (kg)`;
+
+            activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
                 type: 'bar',
                 data: {
-                    labels: dataArr.map(d => d.muscle),
+                    labels: muscleGroupLabels,
                     datasets: [{
-                        label: 'Max Weight (kg)',
-                        data: dataArr.map(d => d.weight),
-                        reps: dataArr.map(d => d.reps),
-                        exercises: dataArr.map(d => d.exercise),
+                        label: 'Best Set (kg)',
+                        data: bestWeights,
                         backgroundColor: '#22c55e'
                     }]
                 },
                 options: {
                     responsive: true,
-                    onClick: (event, elements) => {
-                        if (elements.length > 0) {
-                            const idx = elements[0].index;
-                            const ds = activeCharts['bestSets'].data.datasets[0];
-                            alert(`Exercise: ${ds.exercises[idx]}\nWeight: ${ds.data[idx]} kg\nReps: ${ds.reps[idx]}`);
-                        }
-                    },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Weight (kg)' } } },
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                label: (ctx) => `Weight: ${ctx.raw} kg | Reps: ${ctx.dataset.reps[ctx.dataIndex]}`
+                                label: (ctx) => {
+                                    const i = ctx.dataIndex;
+                                    return `${bestWeights[i]}kg x ${bestReps[i]} reps — ${bestExercises[i]}`;
+                                }
                             }
                         }
                     }
                 }
             });
+
+            if (muscleGroupLabels.length === 0) {
+                document.getElementById("adaptive-chart-title").textContent =
+                    `${viewingAthlete} — Best Ever Set Per Muscle Group (no data yet)`;
+            }
         }
 
         window.onload = initApp;
