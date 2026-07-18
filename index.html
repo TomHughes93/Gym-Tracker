@@ -867,24 +867,17 @@
 
         async function loadPerformanceCharts() {
             const athlete = document.getElementById("chart-athlete-select").value;
-            const exId = document.getElementById("chart-exercise-select").value;
             const userId = usersMap[athlete];
-            const { data: logs } = await supabaseClient.from('set_logs').select('session_id, exercise_id, weight, reps, sessions:workout_sessions(date)').eq('workout_sessions.user_id', userId);
-            
-            // This retrieves all data for the new chart
-            const { data: allLogs } = await supabaseClient.from('set_logs').select('weight, reps, exercise_id, exercises:exercises(muscle_group, exercise_name)');
-            renderAnalyticsCharts(logs || [], allLogs || []);
+            const { data: logs } = await supabaseClient.from('set_logs').select('weight, reps, exercise_id, workout_sessions!inner(user_id), exercises(muscle_group, exercise_name)').eq('workout_sessions.user_id', userId);
+            renderAnalyticsCharts(logs || []);
         }
 
-        function renderAnalyticsCharts(logs, allLogs) {
+        function renderAnalyticsCharts(logs) {
             Object.values(activeCharts).forEach(c => c.destroy());
             
-            // Volume chart (original functionality)
-            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), { type: 'line', data: { labels: [], datasets: [{ data: [] }] } });
-
-            // Best set per group (new functionality)
+            // Best set per group
             const best = {};
-            allLogs.forEach(l => {
+            logs.forEach(l => {
                 const m = l.exercises?.muscle_group;
                 if (m && (!best[m] || l.weight > best[m].weight)) best[m] = { w: l.weight, r: l.reps, n: l.exercises.exercise_name };
             });
@@ -903,3 +896,5 @@
     </script>
 </body>
 </html>
+
+How is the performance on your end after this reset?
