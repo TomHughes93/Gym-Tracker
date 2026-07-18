@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -618,72 +619,84 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Exercise ids here MUST match public.exercises.id in the DB (see schema.sql)
         const fallbackExercises = [
-            { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
-            { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
-            { id: 3, exercise: "Cable Row (Narrow)", muscle_group: "Back" },
-            { id: 4, exercise: "Cable Row (Wide)", muscle_group: "Back" },
-            { id: 5, exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" },
-            { id: 6, exercise: "T-Bar Row (Narrow)", muscle_group: "Back" },
-            { id: 7, exercise: "T-Bar Row (Wide)", muscle_group: "Back" },
-            { id: 8, exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
-            { id: 9, exercise: "Machine Row (Narrow)", muscle_group: "Back" },
-            { id: 10, exercise: "Machine Row (Wide)", muscle_group: "Back" },
-            { id: 11, exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
-            { id: 12, exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" },
-            { id: 13, exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
-            { id: 14, exercise: "Standing Bar Curl", muscle_group: "Biceps" },
-            { id: 15, exercise: "Cable Rope Curl", muscle_group: "Biceps" },
-            { id: 16, exercise: "Cable Bar Curl", muscle_group: "Biceps" },
-            { id: 17, exercise: "Cable Handle Curl", muscle_group: "Biceps" },
-            { id: 18, exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 19, exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
-            { id: 20, exercise: "Flat Bench Press (Plate Loaded)", muscle_group: "Chest" },
-            { id: 21, exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
-            { id: 22, exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
-            { id: 23, exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
-            { id: 24, exercise: "Incline Bench Press (Cable)", muscle_group: "Chest" },
-            { id: 25, exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
-            { id: 26, exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
-            { id: 27, exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
-            { id: 28, exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" },
-            { id: 29, exercise: "Pec Dec", muscle_group: "Chest" },
-            { id: 30, exercise: "Cable Flys (High to Low)", muscle_group: "Chest" },
-            { id: 31, exercise: "Cable Flys (Low to High)", muscle_group: "Chest" },
-            { id: 32, exercise: "Dips (Weighted)", muscle_group: "Chest" },
-            { id: 33, exercise: "Cross Cable Flys", muscle_group: "Triceps" },
-            { id: 34, exercise: "Extension Machine", muscle_group: "Triceps" },
-            { id: 35, exercise: "Rope Extension", muscle_group: "Triceps" },
-            { id: 36, exercise: "Handle Pull Down", muscle_group: "Triceps" },
-            { id: 37, exercise: "Bar Pull Down", muscle_group: "Triceps" },
-            { id: 38, exercise: "Skull Crushers", muscle_group: "Triceps" },
-            { id: 39, exercise: "Overhead Extension", muscle_group: "Triceps" },
-            { id: 40, exercise: "V-Bar Push Down", muscle_group: "Triceps" },
-            { id: 41, exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
-            { id: 42, exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
-            { id: 43, exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
-            { id: 44, exercise: "Overhead Press (Cable)", muscle_group: "Shoulders" },
-            { id: 45, exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
-            { id: 46, exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
-            { id: 47, exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
-            { id: 48, exercise: "Front Raise (Plate)", muscle_group: "Shoulders" },
-            { id: 49, exercise: "Front Raise (Cable)", muscle_group: "Shoulders" },
-            { id: 50, exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
-            { id: 51, exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
-            { id: 52, exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
-            { id: 53, exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
-            { id: 54, exercise: "Standing Calf Raise", muscle_group: "Legs" },
-            { id: 55, exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" },
-            { id: 56, exercise: "Quad Extension (Cable)", muscle_group: "Legs" },
-            { id: 57, exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" },
-            { id: 58, exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" },
-            { id: 59, exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
-            { id: 60, exercise: "Leg Press (Machine)", muscle_group: "Legs" },
-            { id: 61, exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
-            { id: 62, exercise: "Treadmill", muscle_group: "Cardio" },
-            { id: 63, exercise: "Spinning Bike", muscle_group: "Cardio" },
-            { id: 64, exercise: "Seated Bike", muscle_group: "Cardio" }
+            { id: "1", exercise: "Cable Lat Pull Down", muscle_group: "Back" },
+            { id: "2", exercise: "Plate Lat Pull Down", muscle_group: "Back" },
+            { id: "3", exercise: "Cable Row (Narrow)", muscle_group: "Back" },
+            { id: "4", exercise: "Cable Row (Wide)", muscle_group: "Back" },
+            { id: "5", exercise: "Plate Divergent Row (Narrow)", muscle_group: "Back" },
+            { id: "6", exercise: "T-Bar Row (Narrow)", muscle_group: "Back" },
+            { id: "7", exercise: "T-Bar Row (Wide)", muscle_group: "Back" },
+            { id: "8", exercise: "Pull Ups (Weighted)", muscle_group: "Back" },
+            { id: "9", exercise: "Machine Row (Narrow)", muscle_group: "Back" },
+            { id: "10", exercise: "Machine Row (Wide)", muscle_group: "Back" },
+            { id: "11", exercise: "Preacher Curl (Plate Loaded)", muscle_group: "Biceps" },
+            { id: "12", exercise: "Preacher Curl (Cable)", muscle_group: "Biceps" },
+            { id: "13", exercise: "Seated Dumbbell Curl", muscle_group: "Biceps" },
+            { id: "14", exercise: "Standing Bar Curl", muscle_group: "Biceps" },
+            { id: "15", exercise: "Cable Rope Curl", muscle_group: "Biceps" },
+            { id: "16", exercise: "Cable Bar Curl", muscle_group: "Biceps" },
+            { id: "17", exercise: "Cable Handle Curl", muscle_group: "Biceps" },
+            { id: "18", exercise: "Flat Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: "19", exercise: "Flat Bench Press (Cable)", muscle_group: "Chest" },
+            { id: "20", exercise: "Flat Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: "21", exercise: "Flat Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: "22", exercise: "Flat Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: "23", exercise: "Incline Bench Press (Barbell)", muscle_group: "Chest" },
+            { id: "24", exercise: "Incline Bench Press (Cable)", muscle_group: "Chest" },
+            { id: 25", exercise: "Incline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: "26", exercise: "Incline Bench Press (Smith Machine)", muscle_group: "Chest" },
+            { id: "27", exercise: "Incline Bench Press (Dumbbell)", muscle_group: "Chest" },
+            { id: "28", exercise: "Decline Bench Press (Plate Loaded)", muscle_group: "Chest" },
+            { id: "29", exercise: "Pec Dec", muscle_group: "Chest" },
+            { id: "30", exercise: "Cable Flys (High to Low)", muscle_group: "Chest" },
+            { id: "31", exercise: "Cable Flys (Low to High)", muscle_group: "Chest" },
+            { id: "32", exercise: "Dips (Weighted)", muscle_group: "Chest" },
+            { id: "33", exercise: "Cross Cable Flys", muscle_group: "Triceps" },
+            { id: "34", exercise: "Extension Machine", muscle_group: "Triceps" },
+            { id: "35", exercise: "Rope Extension", muscle_group: "Triceps" },
+            { id: "36", exercise: "Handle Pull Down", muscle_group: "Triceps" },
+            { id: "37", exercise: "Bar Pull Down", muscle_group: "Triceps" },
+            { id: "38", exercise: "Skull Crushers", muscle_group: "Triceps" },
+            { id: "39", exercise: "Overhead Extension", muscle_group: "Triceps" },
+            { id: "40", exercise: "V-Bar Push Down", muscle_group: "Triceps" },
+            { id: "41", exercise: "Overhead Press (Smith Machine)", muscle_group: "Shoulders" },
+            { id: "42", exercise: "Overhead Press (Dumbbell)", muscle_group: "Shoulders" },
+            { id: "43", exercise: "Overhead Press (Plate Loaded)", muscle_group: "Shoulders" },
+            { id: "44", exercise: "Overhead Press (Cable)", muscle_group: "Shoulders" },
+            { id: "45", exercise: "Lateral Raise (Cable)", muscle_group: "Shoulders" },
+            { id: "46", exercise: "Lateral Raise (Machine)", muscle_group: "Shoulders" },
+            { id: "47", exercise: "Lateral Raise (Dumbbell)", muscle_group: "Shoulders" },
+            { id: "48", exercise: "Front Raise (Plate)", muscle_group: "Shoulders" },
+            { id: "49", exercise: "Front Raise (Cable)", muscle_group: "Shoulders" },
+            { id: "50", exercise: "Rear Delt Fly (Cable)", muscle_group: "Shoulders" },
+            { id: "51", exercise: "Rear Delt Fly (Machine)", muscle_group: "Shoulders" },
+            { id: "52", exercise: "Barbell Shrugs", muscle_group: "Shoulders" },
+            { id: "53", exercise: "Seated Calf Raise (Plate Loaded)", muscle_group: "Legs" },
+            { id: "54", exercise: "Standing Calf Raise", muscle_group: "Legs" },
+            { id: "55", exercise: "Quad Extension (Plate Loaded)", muscle_group: "Legs" },
+            { id: "56", exercise: "Quad Extension (Cable)", muscle_group: "Legs" },
+            { id: "57", exercise: "Prone Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: "58", exercise: "Seated Hamstring Curl (Machine)", muscle_group: "Legs" },
+            { id: "59", exercise: "Seated Hamstring Curl (Plate Loaded)", muscle_group: "Legs" },
+            { id: "60", exercise: "Leg Press (Machine)", muscle_group: "Legs" },
+            { id: "61", exercise: "Leg Press (Plate Loaded)", muscle_group: "Legs" },
+            { id: "62", exercise: "Treadmill", muscle_group: "Cardio" },
+            { id: "63", exercise: "Spinning Bike", muscle_group: "Cardio" },
+            { id: "64", exercise: "Seated Bike", muscle_group: "Cardio" },
+            { id: "bar_lat_pull_down", exercise: "Lat Pull Down (Straight Bar)", muscle_group: "Back" },
+            { id: "bar_lat_pull_over", exercise: "Lat Pull Over (Straight Bar)", muscle_group: "Back" },
+            { id: "bayesian_curl", exercise: "Bayesian Curl", muscle_group: "Biceps" },
+            { id: "cable_hammer_curl", exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
+            { id: "mach_flat_bench", exercise: "Flat Bench Press (Machine)", muscle_group: "Chest" },
+            { id: "mach_lat_pull_down", exercise: "Lat Pull Down (Plate Loaded)", muscle_group: "Back" },
+            { id: "mach_oh_press", exercise: "Shoulder Press (Machine)", muscle_group: "Shoulders" },
+            { id: "mach_preacher_curl", exercise: "Preacher Curl (Machine)", muscle_group: "Biceps" },
+            { id: "rev_lat_pull_down", exercise: "Lat Pull Down (Reverse Grip)", muscle_group: "Back" },
+            { id: "rope_lat_pull_over", exercise: "Lat Pull Over (Rope)", muscle_group: "Back" },
+            { id: "single_handle_tricep", exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
+            { id: "single_rear_delt_fly", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
+            { id: "standing_hamstring_curl", exercise: "Standing Hamstring Curl", muscle_group: "Legs" }
         ];
 
         // Runtime state
@@ -846,7 +859,7 @@
 
             const muscleGroups = [...new Set(
                 setLogs.map(l => {
-                    const ex = fallbackExercises.find(e => e.id === l.exercise_id);
+                    const ex = fallbackExercises.find(e => String(e.id) === String(l.exercise_id));
                     return ex ? ex.muscle_group : null;
                 }).filter(Boolean)
             )].sort();
@@ -970,7 +983,7 @@
                                 <label>Reps</label>
                                 <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
                             </div>
-                            <button class="btn-log" id="btn-log-${ex.id}" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
+                            <button class="btn-log" id="btn-log-${ex.id}" onclick="logSetLocal('${ex.id}', ${isCardio})">Log</button>
                         </div>
                     </div>
                 `;
@@ -1005,7 +1018,7 @@
             if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
 
             const today = todayStamp();
-            const exObject = fallbackExercises.find(e => e.id === exerciseId);
+            const exObject = fallbackExercises.find(e => String(e.id) === String(exerciseId));
 
             const newLogEntry = {
                 id: "log_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
@@ -1284,11 +1297,6 @@
 
                 const sessionIds = sessions.map(s => s.id);
 
-                // Pull ALL logs for this athlete (unfiltered) — the "Best Ever
-                // Set Per Muscle Group" chart always looks across every
-                // exercise regardless of the movement filter, so it needs the
-                // full set. The volume chart then filters this client-side
-                // when a specific movement is selected.
                 const { data: allLogs } = await supabaseClient
                     .from('set_logs')
                     .select('session_id, exercise_id, weight, reps')
@@ -1351,15 +1359,10 @@
             });
 
             // ---- Chart 2: Best Ever Set Per Muscle Group ----
-            // "Best" is ranked by weight lifted first (60kg x 10 beats 55kg x
-            // 12), with reps only used to break a tie on identical weight.
-            // Always computed from the athlete's full history across every
-            // exercise, ignoring the movement filter above (Cardio is
-            // excluded since its "weight" field is really minutes, not load).
             const bestByMuscle = {};
 
             allLogs.forEach(l => {
-                const ex = fallbackExercises.find(e => e.id === l.exercise_id);
+                const ex = fallbackExercises.find(e => String(e.id) === String(l.exercise_id));
                 if (!ex || ex.muscle_group === 'Cardio') return;
 
                 const current = bestByMuscle[ex.muscle_group];
