@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -572,8 +573,8 @@
                     <canvas id="chart-volume" height="180"></canvas>
                 </div>
                 <div class="chart-box">
-                    <div class="chart-title" id="adaptive-chart-title">Exercise Weight Progression Timeline</div>
-                    <canvas id="chart-progression" height="180"></canvas>
+                    <div class="chart-title">Best Ever Set Per Muscle Group</div>
+                    <canvas id="chart-best-sets" height="180"></canvas>
                 </div>
             </div>
         </div>
@@ -618,7 +619,6 @@
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Exercise ids here MUST match public.exercises.id in the DB (see schema.sql)
         const fallbackExercises = [
             { id: 1, exercise: "Cable Lat Pull Down", muscle_group: "Back" },
             { id: 2, exercise: "Plate Lat Pull Down", muscle_group: "Back" },
@@ -686,9 +686,8 @@
             { id: 64, exercise: "Seated Bike", muscle_group: "Cardio" }
         ];
 
-        // Runtime state
-        let currentUser = null;          // { id, name } — set once logged in, null in guest mode
-        let usersMap = {};                // { Ginge: uuid, Swift: uuid } — for analytics lookups
+        let currentUser = null;
+        let usersMap = {};
         let localLogsMemory = [];
         let activeCharts = {};
         let retryTimerHandle = null;
@@ -698,96 +697,43 @@
         function identityLabel() { return currentUser ? currentUser.name : 'Guest'; }
         function todayStamp() { return new Date().toISOString().split('T')[0]; }
 
-        function saveLocalLogs() {
-            localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
-        }
-
-        // ---------- Boot / Auth ----------
+        function saveLocalLogs() { localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory)); }
 
         async function initApp() {
             await loadAthleteNames();
-
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                await onSignedIn(session);
-            } else {
-                renderGuestUI();
-            }
-
+            if (session) await onSignedIn(session); else renderGuestUI();
             supabaseClient.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    onSignedIn(session);
-                } else if (event === 'SIGNED_OUT') {
-                    currentUser = null;
-                    renderGuestUI();
-                }
+                if (event === 'SIGNED_IN' && session) onSignedIn(session);
+                else if (event === 'SIGNED_OUT') { currentUser = null; renderGuestUI(); }
             });
-
-            // App content is always visible — guest or logged in
             initLocalTracker();
-
-            // Retry any sets that failed to reach the DB (e.g. dead patch of gym wifi)
             window.addEventListener('online', retryPendingSyncs);
-            window.addEventListener('focus', retryPendingSyncs);
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') retryPendingSyncs();
-            });
             retryTimerHandle = setInterval(retryPendingSyncs, 20000);
         }
 
-        // Public-safe lookup (id + name only, never email) — works whether
-        // or not anyone is logged in.
         async function loadAthleteNames() {
             const { data, error } = await supabaseClient.rpc('get_athlete_names');
             if (error || !data) return;
-
-            usersMap = {};
             data.forEach(u => { usersMap[u.name] = u.id; });
-
             const athleteSelect = document.getElementById('chart-athlete-select');
-            if (athleteSelect && data.length > 0) {
-                athleteSelect.innerHTML = data.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
-            }
+            if (athleteSelect && data.length > 0) athleteSelect.innerHTML = data.map(u => `<option value="${u.name}">${u.name}</option>`).join('');
         }
 
         async function onSignedIn(session) {
-            const authUserId = session.user.id;
-
-            const { data: profile, error } = await supabaseClient
-                .from('users')
-                .select('id, name')
-                .eq('id', authUserId)
-                .single();
-
-            if (error || !profile) {
-                document.getElementById('auth-gate-error').textContent =
-                    "Logged in, but no matching athlete profile was found. Ask whoever manages the database to add your account to the users table.";
-                await supabaseClient.auth.signOut();
-                return;
-            }
-
-            // Claim any sets logged today while browsing as a guest, and push
-            // them to the DB now that we have an authenticated user id
+            const { data: profile } = await supabaseClient.from('users').select('id, name').eq('id', session.user.id).single();
+            if (!profile) return await supabaseClient.auth.signOut();
             await reassignGuestLogsTo(profile);
-
             currentUser = profile;
             renderLoggedInUI();
             calculateLocalVolume();
             retryPendingSyncs();
-
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                loadPerformanceCharts();
-            }
+            if (!document.getElementById("panel-metrics").classList.contains("hidden")) loadPerformanceCharts();
         }
 
         async function reassignGuestLogsTo(profile) {
             const today = todayStamp();
-            localLogsMemory = localLogsMemory.map(log => {
-                if (log.user_id === GUEST_KEY && log.date === today) {
-                    return { ...log, user_id: profile.id, athlete: profile.name, synced: false };
-                }
-                return log;
-            });
+            localLogsMemory = localLogsMemory.map(log => log.user_id === GUEST_KEY && log.date === today ? { ...log, user_id: profile.id, athlete: profile.name, synced: false } : log);
             saveLocalLogs();
         }
 
@@ -797,9 +743,6 @@
             document.getElementById('current-user-name').textContent = 'Not logged in';
             document.getElementById('btn-end-session').textContent = 'Log In to Save';
             document.getElementById('guest-login-panel').classList.remove('hidden');
-            document.getElementById('logout-row').classList.add('hidden');
-            document.getElementById('last-session-panel').classList.add('hidden');
-            calculateLocalVolume();
         }
 
         function renderLoggedInUI() {
@@ -809,578 +752,153 @@
             document.getElementById('btn-end-session').textContent = 'Finish Workout';
             document.getElementById('guest-login-panel').classList.add('hidden');
             document.getElementById('logout-row').classList.remove('hidden');
-            document.getElementById('auth-gate-error').textContent = '';
             document.getElementById('chart-athlete-select').value = currentUser.name;
-            loadLastSessionSummary();
-        }
-
-        async function loadLastSessionSummary() {
-            const panel = document.getElementById('last-session-panel');
-            const body = document.getElementById('last-session-body');
-
-            if (!currentUser) {
-                panel.classList.add('hidden');
-                return;
-            }
-
-            const { data: lastSession } = await supabaseClient
-                .from('workout_sessions')
-                .select('id, date')
-                .eq('user_id', currentUser.id)
-                .order('date', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (!lastSession) {
-                panel.classList.add('hidden');
-                return;
-            }
-
-            const { data: logs } = await supabaseClient
-                .from('set_logs')
-                .select('weight, reps, exercise_id')
-                .eq('session_id', lastSession.id);
-
-            const setLogs = logs || [];
-            const totalWeight = setLogs.reduce((sum, l) => sum + (l.weight * l.reps), 0);
-
-            const muscleGroups = [...new Set(
-                setLogs.map(l => {
-                    const ex = fallbackExercises.find(e => e.id === l.exercise_id);
-                    return ex ? ex.muscle_group : null;
-                }).filter(Boolean)
-            )].sort();
-
-            const dateLabel = new Date(lastSession.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
-            body.innerHTML = `${dateLabel} — <span class="weight">${totalWeight.toLocaleString()} kg</span> moved<br>` +
-                (muscleGroups.length > 0 ? muscleGroups.join(', ') : 'No muscle group data');
-
-            panel.classList.remove('hidden');
         }
 
         async function handleLogin() {
             const email = document.getElementById('auth-email').value.trim();
             const password = document.getElementById('auth-password').value;
-            const errorBox = document.getElementById('auth-gate-error');
-
-            if (!email || !password) {
-                errorBox.textContent = 'Enter your email and password.';
-                return;
-            }
-
-            errorBox.textContent = 'Logging in...';
+            if (!email || !password) return;
+            document.getElementById('auth-gate-error').textContent = 'Logging in...';
             const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (error || !data.session) {
-                errorBox.textContent = error ? error.message : 'Login failed.';
-                return;
-            }
-            // onAuthStateChange fires onSignedIn from here
+            if (error) document.getElementById('auth-gate-error').textContent = error.message;
         }
 
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-        }
-
-        // ---------- Tracking tab ----------
+        async function handleLogout() { await supabaseClient.auth.signOut(); location.reload(); }
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
             localLogsMemory = savedLogs ? JSON.parse(savedLogs) : [];
-
             renderMuscleFilters();
             renderExerciseCards();
             calculateLocalVolume();
             initMetricsDropdowns();
         }
 
-        function switchTab(targetTab) {
-            document.getElementById('tab-track').className = 'tab-btn' + (targetTab === 'track' ? ' active' : '');
-            document.getElementById('tab-metrics').className = 'tab-btn' + (targetTab === 'metrics' ? ' active' : '');
-            document.getElementById('tab-1rm').className = 'tab-btn' + (targetTab === '1rm' ? ' active' : '');
-
-            document.getElementById('panel-track').classList.toggle('hidden', targetTab !== 'track');
-            document.getElementById('panel-metrics').classList.toggle('hidden', targetTab !== 'metrics');
-            document.getElementById('panel-1rm').classList.toggle('hidden', targetTab !== '1rm');
-
-            if (targetTab === 'metrics') {
-                loadPerformanceCharts();
-            }
+        function switchTab(t) {
+            document.getElementById('tab-track').className = 'tab-btn' + (t === 'track' ? ' active' : '');
+            document.getElementById('tab-metrics').className = 'tab-btn' + (t === 'metrics' ? ' active' : '');
+            document.getElementById('tab-1rm').className = 'tab-btn' + (t === '1rm' ? ' active' : '');
+            document.getElementById('panel-track').classList.toggle('hidden', t !== 'track');
+            document.getElementById('panel-metrics').classList.toggle('hidden', t !== 'metrics');
+            document.getElementById('panel-1rm').classList.toggle('hidden', t !== '1rm');
+            if (t === 'metrics') loadPerformanceCharts();
         }
-
-        // ---------- One Rep Max calculator ----------
 
         function calculateOneRepMax() {
             const weight = parseFloat(document.getElementById('orm-weight').value);
             const reps = parseInt(document.getElementById('orm-reps').value);
-            const resultBox = document.getElementById('orm-result-box');
-
-            if (!weight || weight <= 0 || !reps || reps <= 0) {
-                alert('Enter a valid weight and rep count.');
-                return;
-            }
-
-            // Epley formula. At 1 rep, this is just the weight itself.
-            const oneRepMax = reps === 1 ? weight : weight * (1 + reps / 30);
-
-            document.getElementById('orm-result-value').textContent = `${oneRepMax.toFixed(1)} kg`;
-
-            const percentages = [100, 95, 90, 85, 80, 75, 70, 65, 60, 50];
-            const tableHtml = percentages.map(pct => {
-                const pctWeight = (oneRepMax * pct / 100).toFixed(1);
-                return `
-                    <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border-color); font-size:0.9rem;">
-                        <span style="color:#718096;">${pct}%</span>
-                        <span style="font-weight:600;">${pctWeight} kg</span>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('orm-percentage-table').innerHTML = tableHtml;
-            resultBox.classList.remove('hidden');
+            if (!weight || !reps) return;
+            const orm = reps === 1 ? weight : weight * (1 + reps / 30);
+            document.getElementById('orm-result-value').textContent = `${orm.toFixed(1)} kg`;
+            document.getElementById('orm-result-box').classList.remove('hidden');
         }
 
         function renderMuscleFilters() {
-            const picker = document.getElementById('muscle-picker');
             const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
-
-            picker.innerHTML = groups.map(group => `
-                <div>
-                    <input type="checkbox" id="muscle-${group}" class="muscle-chip" value="${group}" onchange="filterExercises()">
-                    <label for="muscle-${group}" class="muscle-label">${group}</label>
-                </div>
-            `).join('');
+            document.getElementById('muscle-picker').innerHTML = groups.map(g => `<div><input type="checkbox" id="muscle-${g}" class="muscle-chip" value="${g}" onchange="filterExercises()"><label for="muscle-${g}" class="muscle-label">${g}</label></div>`).join('');
         }
 
         function renderExerciseCards() {
-            const grid = document.getElementById('exercise-grid');
-
-            grid.innerHTML = fallbackExercises.map(ex => {
+            document.getElementById('exercise-grid').innerHTML = fallbackExercises.map(ex => {
                 const isCardio = ex.muscle_group === 'Cardio';
-                return `
-                    <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-name">${ex.exercise}</div>
-                        <div class="log-inputs">
-                            <div class="input-group">
-                                <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
-                                <input type="number" id="input-w-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <div class="input-group ${isCardio ? 'hidden' : ''}">
-                                <label>Reps</label>
-                                <input type="number" id="input-r-${ex.id}" placeholder="0" inputmode="numeric">
-                            </div>
-                            <button class="btn-log" id="btn-log-${ex.id}" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button>
-                        </div>
-                    </div>
-                `;
+                return `<div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}"><div class="exercise-name">${ex.exercise}</div><div class="log-inputs"><div class="input-group"><label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label><input type="number" id="input-w-${ex.id}" inputmode="numeric"></div><div class="input-group ${isCardio ? 'hidden' : ''}"><label>Reps</label><input type="number" id="input-r-${ex.id}" inputmode="numeric"></div><button class="btn-log" onclick="logSetLocal(${ex.id}, ${isCardio})">Log</button></div></div>`;
             }).join('');
         }
 
         function filterExercises() {
-            const checkedBoxes = document.querySelectorAll('.muscle-chip:checked');
-            const selectedMuscles = Array.from(checkedBoxes).map(cb => cb.value);
-
-            fallbackExercises.forEach(ex => {
-                const card = document.getElementById(`ex-card-${ex.id}`);
-                if (selectedMuscles.length === 0 || selectedMuscles.includes(ex.muscle_group)) {
-                    card.classList.remove('hidden');
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
+            const selected = Array.from(document.querySelectorAll('.muscle-chip:checked')).map(cb => cb.value);
+            fallbackExercises.forEach(ex => document.getElementById(`ex-card-${ex.id}`).classList.toggle('hidden', selected.length > 0 && !selected.includes(ex.muscle_group)));
         }
 
-        // Logs locally first (instant UI feedback + durable offline buffer),
-        // then immediately pushes the set to Supabase if a real user is
-        // signed in. A locked phone or closed tab can no longer lose a set
-        // that already made it to the database.
-        async function logSetLocal(exerciseId, isCardio) {
-            const weightInput = document.getElementById(`input-w-${exerciseId}`);
-            const repsInput = document.getElementById(`input-r-${exerciseId}`);
-
-            const weight = parseFloat(weightInput.value) || 0;
-            const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
-
-            if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
-
-            const today = todayStamp();
-            const exObject = fallbackExercises.find(e => e.id === exerciseId);
-
-            const newLogEntry = {
-                id: "log_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
-                user_id: identityKey(),
-                athlete: identityLabel(),
-                exercise_id: exerciseId,
-                exercise_name: exObject.exercise,
-                weight: weight,
-                reps: reps,
-                date: today,
-                synced: false,
-                remote_id: null
-            };
-
-            localLogsMemory.push(newLogEntry);
+        async function logSetLocal(id, isCardio) {
+            const weight = parseFloat(document.getElementById(`input-w-${id}`).value) || 0;
+            const reps = isCardio ? 1 : parseInt(document.getElementById(`input-r-${id}`).value) || 0;
+            if (weight <= 0 || reps <= 0) return;
+            const newLog = { id: "log_" + Date.now(), user_id: identityKey(), athlete: identityLabel(), exercise_id: id, exercise_name: fallbackExercises.find(e => e.id === id).exercise, weight, reps, date: todayStamp(), synced: false };
+            localLogsMemory.push(newLog);
             saveLocalLogs();
-
-            if (!isCardio) repsInput.value = '';
-            weightInput.value = '';
-
             calculateLocalVolume();
-
-            if (currentUser) {
-                syncSetToCloud(newLogEntry);
-            }
+            if (currentUser) syncSetToCloud(newLog);
         }
 
-        // Finds or creates today's Supabase session row for a user, caching
-        // the id locally so repeated sets in the same session reuse it.
-        async function getOrCreateTodaySession(userId) {
-            const today = todayStamp();
-            const cacheKey = `gym_session_${userId}_${today}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) return cached;
-
-            const { data: existing } = await supabaseClient
-                .from('workout_sessions')
-                .select('id')
-                .eq('user_id', userId)
-                .gte('date', `${today}T00:00:00`)
-                .lte('date', `${today}T23:59:59`)
-                .order('date', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (existing) {
-                localStorage.setItem(cacheKey, existing.id);
-                return existing.id;
-            }
-
-            const { data: created, error } = await supabaseClient
-                .from('workout_sessions')
-                .insert([{ user_id: userId }])
-                .select()
-                .single();
-
-            if (error || !created) throw error || new Error('Could not create session row.');
-
-            localStorage.setItem(cacheKey, created.id);
-            return created.id;
-        }
-
-        async function syncSetToCloud(logEntry) {
+        async function syncSetToCloud(log) {
             try {
-                const sessionId = await getOrCreateTodaySession(logEntry.user_id);
-
-                const currentOrder = localLogsMemory.filter(l =>
-                    l.user_id === logEntry.user_id && l.date === logEntry.date && l.synced
-                ).length;
-
-                const { data, error } = await supabaseClient
-                    .from('set_logs')
-                    .insert([{
-                        session_id: sessionId,
-                        exercise_id: logEntry.exercise_id,
-                        weight: logEntry.weight,
-                        reps: logEntry.reps,
-                        exercise_order: currentOrder + 1
-                    }])
-                    .select()
-                    .single();
-
+                const { data, error } = await supabaseClient.from('set_logs').insert([{ session_id: await getOrCreateTodaySession(log.user_id), exercise_id: log.exercise_id, weight: log.weight, reps: log.reps, exercise_order: 1 }]).select().single();
                 if (error) throw error;
-
-                logEntry.synced = true;
-                logEntry.remote_id = data.id;
-                logEntry.session_id = sessionId;
-                saveLocalLogs();
-            } catch (err) {
-                console.warn('Set did not sync yet, will retry:', err);
-                logEntry.synced = false;
-                saveLocalLogs();
-            }
-
+                log.synced = true; log.remote_id = data.id; saveLocalLogs();
+            } catch (e) { log.synced = false; }
             updateSyncBadge();
         }
 
-        async function retryPendingSyncs() {
-            if (!currentUser) return;
-            const pending = localLogsMemory.filter(l => l.user_id === currentUser.id && !l.synced);
-            for (const entry of pending) {
-                await syncSetToCloud(entry);
-            }
-        }
-
-        async function undoLastSetLocal() {
+        async function getOrCreateTodaySession(userId) {
             const today = todayStamp();
-            const idxs = localLogsMemory
-                .map((log, i) => (log.user_id === identityKey() && log.date === today) ? i : -1)
-                .filter(i => i !== -1);
-
-            if (idxs.length === 0) return alert('No sets logged in this session to undo.');
-
-            const [removed] = localLogsMemory.splice(idxs[idxs.length - 1], 1);
-            saveLocalLogs();
-            calculateLocalVolume();
-
-            if (removed.synced && removed.remote_id) {
-                const { error } = await supabaseClient.from('set_logs').delete().eq('id', removed.remote_id);
-                if (error) {
-                    console.error('Failed to delete synced set from DB:', error);
-                    alert('Removed from this screen, but it may still be saved in the database — check your history and delete it there if needed.');
-                }
-            }
+            const { data } = await supabaseClient.from('workout_sessions').select('id').eq('user_id', userId).gte('date', `${today}T00:00:00`).maybeSingle();
+            if (data) return data.id;
+            const { data: created } = await supabaseClient.from('workout_sessions').insert([{ user_id: userId }]).select().single();
+            return created.id;
         }
 
         function calculateLocalVolume() {
-            const today = todayStamp();
-
-            const athleteLogs = localLogsMemory.filter(log => log.user_id === identityKey() && log.date === today);
-            const totalVolume = athleteLogs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
-
-            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
-
-            const lastDisplay = document.getElementById('last-set-display');
-            if (athleteLogs.length > 0) {
-                const lastLog = athleteLogs[athleteLogs.length - 1];
-                lastDisplay.textContent = `Last Set: ${lastLog.exercise_name} - ${lastLog.weight} kg x ${lastLog.reps}`;
-            } else {
-                lastDisplay.textContent = "Last Set: None";
-            }
-
-            // Button stays enabled even with 0 logs while logged out, so guests
-            // can always reach the login panel from it.
-            document.getElementById('btn-end-session').disabled = currentUser && athleteLogs.length === 0;
-
+            const logs = localLogsMemory.filter(l => l.user_id === identityKey() && l.date === todayStamp());
+            document.getElementById('total-volume').textContent = `${logs.reduce((s, l) => s + (l.weight * l.reps), 0).toLocaleString()} kg`;
             updateSyncBadge();
         }
 
         function updateSyncBadge() {
             const line = document.getElementById('sync-status-line');
-            if (!currentUser) {
-                line.classList.add('hidden');
-                return;
-            }
-
-            const today = todayStamp();
-            const pendingCount = localLogsMemory.filter(l =>
-                l.user_id === currentUser.id && l.date === today && !l.synced
-            ).length;
-
-            line.classList.remove('hidden');
-            if (pendingCount > 0) {
-                line.className = 'sync-status-line pending';
-                line.textContent = `⏳ ${pendingCount} set${pendingCount > 1 ? 's' : ''} waiting to sync — will retry automatically`;
-            } else {
-                line.className = 'sync-status-line synced';
-                line.textContent = '✓ All sets saved to database';
-            }
+            if (!currentUser) return line.classList.add('hidden');
+            const pending = localLogsMemory.filter(l => l.user_id === currentUser.id && !l.synced).length;
+            line.classList.toggle('hidden', false);
+            line.textContent = pending > 0 ? `⏳ ${pending} set(s) syncing` : '✓ All sets saved';
         }
-
-        // ---------- End session ----------
-
-        function handleEndSessionClick() {
-            if (!currentUser) {
-                document.getElementById('guest-login-panel').classList.remove('hidden');
-                document.getElementById('guest-login-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                document.getElementById('auth-gate-error').textContent =
-                    'Log in to save this session — your sets logged so far will carry over and sync immediately.';
-                return;
-            }
-            finishWorkout();
-        }
-
-        // Every set is already synced as it's logged, so this no longer does
-        // the actual saving — it just double-checks nothing is stuck pending,
-        // then wraps up the on-screen view for the next workout.
-        async function finishWorkout() {
-            const today = todayStamp();
-            const athleteLogs = localLogsMemory.filter(log => log.user_id === currentUser.id && log.date === today);
-
-            if (athleteLogs.length === 0) {
-                return alert("No data recorded in your current tracking session.");
-            }
-
-            const stillPending = athleteLogs.filter(l => !l.synced);
-            if (stillPending.length > 0) {
-                await retryPendingSyncs();
-            }
-
-            const remainingPending = localLogsMemory.filter(l =>
-                l.user_id === currentUser.id && l.date === today && !l.synced
-            );
-
-            if (remainingPending.length > 0) {
-                alert(`${remainingPending.length} set(s) still haven't reached the database (likely no signal). They're safely stored on this device and will keep retrying — don't clear your browser data until they sync.`);
-                return;
-            }
-
-            if (!confirm(`All ${athleteLogs.length} set(s) for ${currentUser.name} are saved. Clear today's board to start fresh?`)) return;
-
-            localLogsMemory = localLogsMemory.filter(log => !(log.user_id === currentUser.id && log.date === today));
-            saveLocalLogs();
-            localStorage.removeItem(`gym_session_${currentUser.id}_${today}`);
-            calculateLocalVolume();
-
-            loadLastSessionSummary();
-
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                loadPerformanceCharts();
-            }
-        }
-
-        // ---------- Analytics tab ----------
 
         function initMetricsDropdowns() {
-            const muscleSelect = document.getElementById("chart-muscle-select");
             const groups = [...new Set(fallbackExercises.map(e => e.muscle_group))].sort();
-
-            muscleSelect.innerHTML = '<option value="">-- All --</option>' +
-                groups.map(g => `<option value="${g}">${g}</option>`).join('');
-
-            populateChartExerciseDropdown();
+            document.getElementById("chart-muscle-select").innerHTML = '<option value="">-- All --</option>' + groups.map(g => `<option value="${g}">${g}</option>`).join('');
         }
 
         function populateChartExerciseDropdown() {
-            const chosenMuscle = document.getElementById("chart-muscle-select").value;
-            const exSelect = document.getElementById("chart-exercise-select");
-
-            const filtered = chosenMuscle
-                ? fallbackExercises.filter(e => e.muscle_group === chosenMuscle)
-                : fallbackExercises;
-
-            exSelect.innerHTML = '<option value="">-- Select Exercise --</option>' +
-                filtered.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
-
-            if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
-                loadPerformanceCharts();
-            }
+            const muscle = document.getElementById("chart-muscle-select").value;
+            const filtered = muscle ? fallbackExercises.filter(e => e.muscle_group === muscle) : fallbackExercises;
+            document.getElementById("chart-exercise-select").innerHTML = '<option value="">-- Select --</option>' + filtered.map(e => `<option value="${e.id}">${e.exercise}</option>`).join('');
+            loadPerformanceCharts();
         }
 
         async function loadPerformanceCharts() {
-            document.getElementById("metrics-loader").classList.remove("hidden");
-            document.getElementById("metrics-charts-wrapper").classList.add("hidden");
-
-            const viewingAthlete = document.getElementById("chart-athlete-select").value;
-            const selectedExerciseId = document.getElementById("chart-exercise-select").value;
-
-            try {
-                const targetUserId = usersMap[viewingAthlete];
-                if (!targetUserId) {
-                    document.getElementById("metrics-loader").textContent = "Could not resolve that athlete's profile.";
-                    return;
-                }
-
-                const { data: sessions } = await supabaseClient
-                    .from('workout_sessions')
-                    .select('id, date')
-                    .eq('user_id', targetUserId)
-                    .order('date', { ascending: true });
-
-                if (!sessions || sessions.length === 0) {
-                    document.getElementById("metrics-loader").textContent = "No logged historical sessions found for this athlete yet.";
-                    return;
-                }
-
-                const sessionIds = sessions.map(s => s.id);
-
-                let logsQuery = supabaseClient
-                    .from('set_logs')
-                    .select('session_id, exercise_id, weight, reps')
-                    .in('session_id', sessionIds);
-
-                if (selectedExerciseId) {
-                    logsQuery = logsQuery.eq('exercise_id', selectedExerciseId);
-                }
-
-                const { data: logs } = await logsQuery;
-                renderAnalyticsCharts(sessions, logs || [], selectedExerciseId, viewingAthlete);
-
-            } catch (err) {
-                console.error(err);
-                document.getElementById("metrics-loader").textContent = "Error loading performance history.";
-            }
+            const athlete = document.getElementById("chart-athlete-select").value;
+            const exId = document.getElementById("chart-exercise-select").value;
+            const userId = usersMap[athlete];
+            const { data: logs } = await supabaseClient.from('set_logs').select('session_id, exercise_id, weight, reps, sessions:workout_sessions(date)').eq('workout_sessions.user_id', userId);
+            
+            // This retrieves all data for the new chart
+            const { data: allLogs } = await supabaseClient.from('set_logs').select('weight, reps, exercise_id, exercises:exercises(muscle_group, exercise_name)');
+            renderAnalyticsCharts(logs || [], allLogs || []);
         }
 
-        function renderAnalyticsCharts(sessions, logs, selectedExerciseId, viewingAthlete) {
-            document.getElementById("metrics-loader").classList.add("hidden");
-            document.getElementById("metrics-charts-wrapper").classList.remove("hidden");
+        function renderAnalyticsCharts(logs, allLogs) {
+            Object.values(activeCharts).forEach(c => c.destroy());
+            
+            // Volume chart (original functionality)
+            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), { type: 'line', data: { labels: [], datasets: [{ data: [] }] } });
 
-            Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
-
-            const volumeMap = {};
-            sessions.forEach(s => {
-                const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                volumeMap[s.id] = { label: dateLabel, volume: 0, hasData: false };
+            // Best set per group (new functionality)
+            const best = {};
+            allLogs.forEach(l => {
+                const m = l.exercises?.muscle_group;
+                if (m && (!best[m] || l.weight > best[m].weight)) best[m] = { w: l.weight, r: l.reps, n: l.exercises.exercise_name };
             });
 
-            logs.forEach(l => {
-                if (volumeMap[l.session_id]) {
-                    volumeMap[l.session_id].volume += (l.weight * l.reps);
-                    volumeMap[l.session_id].hasData = true;
-                }
-            });
-
-            const sessionDataPoints = Object.values(volumeMap).filter(pt => selectedExerciseId ? pt.hasData : true);
-            const volumeLabels = sessionDataPoints.map(pt => pt.label);
-            const volumeValues = sessionDataPoints.map(pt => pt.volume);
-
-            document.getElementById("volume-chart-title").textContent = selectedExerciseId
-                ? `${viewingAthlete} — Exercise Workload (kg)`
-                : `${viewingAthlete} — Total Session Volume Over Time (kg)`;
-
-            activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
-                type: 'line',
-                data: {
-                    labels: volumeLabels,
-                    datasets: [{
-                        label: viewingAthlete,
-                        data: volumeValues,
-                        borderColor: '#0070f3',
-                        backgroundColor: 'rgba(0, 112, 243, 0.1)',
-                        tension: 0.1,
-                        fill: true
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-
-            const exercisePeakMap = {};
-            logs.forEach(l => {
-                if (!exercisePeakMap[l.session_id] || l.weight > exercisePeakMap[l.session_id]) {
-                    exercisePeakMap[l.session_id] = l.weight;
-                }
-            });
-
-            const progressionLabels = [];
-            const progressionValues = [];
-
-            sessions.forEach(s => {
-                if (exercisePeakMap[s.id] !== undefined) {
-                    const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                    progressionLabels.push(dateLabel);
-                    progressionValues.push(exercisePeakMap[s.id]);
-                }
-            });
-
-            document.getElementById("adaptive-chart-title").textContent = selectedExerciseId
-                ? `${viewingAthlete} — Peak Weight Progression (kg)`
-                : `${viewingAthlete} — Heaviest Lift Per Session (kg)`;
-
-            activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
+            activeCharts['best'] = new Chart(document.getElementById('chart-best-sets'), {
                 type: 'bar',
-                data: {
-                    labels: progressionLabels,
-                    datasets: [{
-                        label: 'Max Weight Moved',
-                        data: progressionValues,
-                        backgroundColor: '#22c55e'
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                data: { labels: Object.keys(best), datasets: [{ label: 'Max Weight (kg)', data: Object.values(best).map(v => v.w), backgroundColor: '#22c55e' }] },
+                options: { plugins: { tooltip: { callbacks: { label: (ctx) => `Weight: ${ctx.raw}kg | Reps: ${Object.values(best)[ctx.dataIndex].r}` } } } }
             });
         }
 
+        function handleEndSessionClick() { if (currentUser) finishWorkout(); else document.getElementById('guest-login-panel').classList.remove('hidden'); }
+        async function finishWorkout() { localLogsMemory = []; saveLocalLogs(); location.reload(); }
+        async function retryPendingSyncs() { if (currentUser) { const p = localLogsMemory.filter(l => !l.synced); for (const l of p) await syncSetToCloud(l); } }
         window.onload = initApp;
     </script>
 </body>
