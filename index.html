@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -785,11 +784,64 @@
 
             currentUser = profile;
             renderLoggedInUI();
+            
+            // Pull today's actual live session state straight from the database
+            // so closing the browser or locking the phone never wipes the session view.
+            await syncServerLogsIntoMemory(profile);
+
             calculateLocalVolume();
             retryPendingSyncs();
 
             if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
                 loadPerformanceCharts();
+            }
+        }
+
+        async function syncServerLogsIntoMemory(profile) {
+            const today = todayStamp();
+            try {
+                const { data: todaySession } = await supabaseClient
+                    .from('workout_sessions')
+                    .select('id')
+                    .eq('user_id', profile.id)
+                    .gte('date', `${today}T00:00:00`)
+                    .lte('date', `${today}T23:59:59`)
+                    .order('date', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (!todaySession) return;
+
+                const { data: dbLogs } = await supabaseClient
+                    .from('set_logs')
+                    .select('id, exercise_id, weight, reps')
+                    .eq('session_id', todaySession.id)
+                    .order('exercise_order', { ascending: true });
+
+                if (!dbLogs || dbLogs.length === 0) return;
+
+                // Strip out any existing local logs for today and replace with authoritative DB records
+                localLogsMemory = localLogsMemory.filter(l => !(l.user_id === profile.id && l.date === today));
+
+                dbLogs.forEach(l => {
+                    const exObj = fallbackExercises.find(e => String(e.id) === String(l.exercise_id));
+                    localLogsMemory.push({
+                        id: "log_db_" + l.id,
+                        user_id: profile.id,
+                        athlete: profile.name,
+                        exercise_id: l.exercise_id,
+                        exercise_name: exObj ? exObj.exercise : "Exercise",
+                        weight: l.weight,
+                        reps: l.reps,
+                        date: today,
+                        synced: true,
+                        remote_id: l.id,
+                        session_id: todaySession.id
+                    });
+                });
+                saveLocalLogs();
+            } catch (err) {
+                console.warn("Could not fetch server logs on startup:", err);
             }
         }
 
