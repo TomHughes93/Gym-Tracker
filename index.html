@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -936,11 +935,14 @@
 
             const { data: logs } = await supabaseClient
                 .from('set_logs')
-                .select('weight, reps, exercise_id')
+                .select('weight, reps, exercise_id, is_single_arm')
                 .eq('session_id', lastSession.id);
 
             const setLogs = logs || [];
-            const totalWeight = setLogs.reduce((sum, l) => sum + (l.weight * l.reps), 0);
+            const totalWeight = setLogs.reduce((sum, l) => {
+                const multiplier = l.is_single_arm ? 2 : 1;
+                return sum + (l.weight * l.reps * multiplier);
+            }, 0);
 
             const muscleGroups = [...new Set(
                 setLogs.map(l => {
@@ -1247,7 +1249,11 @@
             const today = todayStamp();
 
             const athleteLogs = localLogsMemory.filter(log => log.user_id === identityKey() && log.date === today);
-            const totalVolume = athleteLogs.reduce((sum, log) => sum + (log.weight * log.reps), 0);
+            
+            const totalVolume = athleteLogs.reduce((sum, log) => {
+                const multiplier = log.is_single_arm ? 2 : 1;
+                return sum + (log.weight * log.reps * multiplier);
+            }, 0);
 
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
 
@@ -1428,7 +1434,8 @@
 
             logsForVolume.forEach(l => {
                 if (volumeMap[l.session_id]) {
-                    volumeMap[l.session_id].volume += (l.weight * l.reps);
+                    const multiplier = l.is_single_arm ? 2 : 1;
+                    volumeMap[l.session_id].volume += (l.weight * l.reps * multiplier);
                     volumeMap[l.session_id].hasData = true;
                 }
             });
