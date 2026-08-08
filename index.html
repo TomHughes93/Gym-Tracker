@@ -606,6 +606,18 @@
                     <div class="chart-title" id="adaptive-chart-title">Best Ever Set Per Muscle Group</div>
                     <canvas id="chart-progression" height="180"></canvas>
                 </div>
+                <div class="chart-box">
+                    <div class="chart-title" id="orm-trend-chart-title">Estimated 1RM Progression Over Time</div>
+                    <canvas id="chart-orm-trend" height="180"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title" id="radar-freq-chart-title">Muscle Group Training Frequency (Sets Logged)</div>
+                    <canvas id="chart-radar-freq" height="180"></canvas>
+                </div>
+                <div class="chart-box">
+                    <div class="chart-title" id="radar-weight-chart-title">Weight Moved Distribution by Muscle Group</div>
+                    <canvas id="chart-radar-weight" height="180"></canvas>
+                </div>
             </div>
         </div>
 
@@ -729,9 +741,8 @@
             { id: "77", exercise: "Standing Hamstring Curl", muscle_group: "Legs" }
         ];
 
-        // Runtime state
-        let currentUser = null;          // { id, name } - set once logged in, null in guest mode
-        let usersMap = {};                // { Ginge: uuid, Swift: uuid } - for analytics lookups
+        let currentUser = null;
+        let usersMap = {};
         let localLogsMemory = [];
         let activeCharts = {};
         let retryTimerHandle = null;
@@ -744,8 +755,6 @@
         function saveLocalLogs() {
             localStorage.setItem("gym_tracker_local_logs", JSON.stringify(localLogsMemory));
         }
-
-        // ---------- Boot / Auth ----------
 
         async function initApp() {
             await loadAthleteNames();
@@ -766,10 +775,8 @@
                 }
             });
 
-            // App content is always visible - guest or logged in
             initLocalTracker();
 
-            // Retry any sets that failed to reach the DB (e.g. dead patch of gym wifi)
             window.addEventListener('online', retryPendingSyncs);
             window.addEventListener('focus', retryPendingSyncs);
             document.addEventListener('visibilitychange', () => {
@@ -778,8 +785,6 @@
             retryTimerHandle = setInterval(retryPendingSyncs, 20000);
         }
 
-        // Public-safe lookup (id + name only, never email) - works whether
-        // or not anyone is logged in.
         async function loadAthleteNames() {
             const { data, error } = await supabaseClient.rpc('get_athlete_names');
             if (error || !data) return;
@@ -809,15 +814,11 @@
                 return;
             }
 
-            // Claim any sets logged today while browsing as a guest, and push
-            // them to the DB now that we have an authenticated user id
             await reassignGuestLogsTo(profile);
 
             currentUser = profile;
             renderLoggedInUI();
             
-            // Pull today's actual live session state straight from the database
-            // so closing the browser or locking the phone never wipes the session view.
             await syncServerLogsIntoMemory(profile);
 
             calculateLocalVolume();
@@ -851,7 +852,6 @@
 
                 if (!dbLogs || dbLogs.length === 0) return;
 
-                // Strip out any existing local logs for today and replace with authoritative DB records
                 localLogsMemory = localLogsMemory.filter(l => !(l.user_id === profile.id && l.date === today));
 
                 dbLogs.forEach(l => {
@@ -976,14 +976,11 @@
                 errorBox.textContent = error ? error.message : 'Login failed.';
                 return;
             }
-            // onAuthStateChange fires onSignedIn from here
         }
 
         async function handleLogout() {
             await supabaseClient.auth.signOut();
         }
-
-        // ---------- Tracking tab ----------
 
         function initLocalTracker() {
             const savedLogs = localStorage.getItem("gym_tracker_local_logs");
@@ -1009,8 +1006,6 @@
             }
         }
 
-        // ---------- One Rep Max calculator ----------
-
         function calculateOneRepMax() {
             const weight = parseFloat(document.getElementById('orm-weight').value);
             const reps = parseInt(document.getElementById('orm-reps').value);
@@ -1021,7 +1016,6 @@
                 return;
             }
 
-            // Epley formula. At 1 rep, this is just the weight itself.
             const oneRepMax = reps === 1 ? weight : weight * (1 + reps / 30);
 
             document.getElementById('orm-result-value').textContent = `${oneRepMax.toFixed(1)} kg`;
@@ -1097,10 +1091,6 @@
             });
         }
 
-        // Logs locally first (instant UI feedback + durable offline buffer),
-        // then immediately pushes the set to Supabase if a real user is
-        // signed in. A locked phone or closed tab can no longer lose a set
-        // that already made it to the database.
         async function logSetLocal(exerciseId, isCardio) {
             const weightInput = document.getElementById(`input-w-${exerciseId}`);
             const repsInput = document.getElementById(`input-r-${exerciseId}`);
@@ -1134,7 +1124,7 @@
 
             if (!isCardio) {
                 repsInput.value = '';
-                saCheckbox.checked = false; // Reset toggle after logging
+                saCheckbox.checked = false;
             }
             weightInput.value = '';
 
@@ -1145,8 +1135,6 @@
             }
         }
 
-        // Finds or creates today's Supabase session row for a user, caching
-        // the id locally so repeated sets in the same session reuse it.
         async function getOrCreateTodaySession(userId) {
             const today = todayStamp();
             const cacheKey = `gym_session_${userId}_${today}`;
@@ -1266,8 +1254,6 @@
                 lastDisplay.textContent = "Last Set: None";
             }
 
-            // Button stays enabled even with 0 logs while logged out, so guests
-            // can always reach the login panel from it.
             document.getElementById('btn-end-session').disabled = currentUser && athleteLogs.length === 0;
 
             updateSyncBadge();
@@ -1295,8 +1281,6 @@
             }
         }
 
-        // ---------- End session ----------
-
         function handleEndSessionClick() {
             if (!currentUser) {
                 document.getElementById('guest-login-panel').classList.remove('hidden');
@@ -1308,9 +1292,6 @@
             finishWorkout();
         }
 
-        // Every set is already synced as it's logged, so this no longer does
-        // the actual saving - it just double-checks nothing is stuck pending,
-        // then wraps up the on-screen view for the next workout.
         async function finishWorkout() {
             const today = todayStamp();
             const athleteLogs = localLogsMemory.filter(log => log.user_id === currentUser.id && log.date === today);
@@ -1346,8 +1327,6 @@
                 loadPerformanceCharts();
             }
         }
-
-        // ---------- Analytics tab ----------
 
         function initMetricsDropdowns() {
             const muscleSelect = document.getElementById("chart-muscle-select");
@@ -1522,10 +1501,98 @@
                 }
             });
 
-            if (muscleGroupLabels.length === 0) {
-                document.getElementById("adaptive-chart-title").textContent =
-                    `${viewingAthlete} - Best Ever Set Per Muscle Group (no data yet)`;
+            // ---- Chart 3: Estimated 1RM Progression Over Time (if an exercise is selected) ----
+            const ormBoxTitle = document.getElementById("orm-trend-chart-title");
+            if (selectedExerciseId) {
+                const exObj = fallbackExercises.find(e => String(e.id) === String(selectedExerciseId));
+                ormBoxTitle.textContent = `${viewingAthlete} - Estimated 1RM Progression (${exObj ? exObj.exercise : 'Exercise'})`;
+
+                const ormMap = {};
+                sessions.forEach(s => {
+                    ormMap[s.id] = { label: new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), maxOrm: 0, hasData: false };
+                });
+
+                logsForVolume.forEach(l => {
+                    if (ormMap[l.session_id]) {
+                        const est1rm = l.reps === 1 ? l.weight : l.weight * (1 + l.reps / 30);
+                        if (est1rm > ormMap[l.session_id].maxOrm) {
+                            ormMap[l.session_id].maxOrm = est1rm;
+                            ormMap[l.session_id].hasData = true;
+                        }
+                    }
+                });
+
+                const ormPoints = Object.values(ormMap).filter(pt => pt.hasData);
+                activeCharts['orm'] = new Chart(document.getElementById('chart-orm-trend'), {
+                    type: 'line',
+                    data: {
+                        labels: ormPoints.map(p => p.label),
+                        datasets: [{
+                            label: 'Estimated 1RM (kg)',
+                            data: ormPoints.map(p => p.maxOrm.toFixed(1)),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: { responsive: true, scales: { y: { beginAtZero: false } } }
+                });
+            } else {
+                ormBoxTitle.textContent = `Estimated 1RM Progression Over Time (Select an exercise above)`;
+                activeCharts['orm'] = new Chart(document.getElementById('chart-orm-trend'), {
+                    type: 'line',
+                    data: { labels: [], datasets: [] },
+                    options: { responsive: true }
+                });
             }
+
+            // ---- Radar Charts: Frequency & Weight Distribution by Muscle Group ----
+            const allMuscleCategories = [...new Set(fallbackExercises.map(e => e.muscle_group).filter(g => g !== 'Cardio'))].sort();
+            const freqCounts = {};
+            const weightTotals = {};
+            allMuscleCategories.forEach(g => { freqCounts[g] = 0; weightTotals[g] = 0; });
+
+            allLogs.forEach(l => {
+                const ex = fallbackExercises.find(e => String(e.id) === String(l.exercise_id));
+                if (!ex || ex.muscle_group === 'Cardio') return;
+                const mult = l.is_single_arm ? 2 : 1;
+                freqCounts[ex.muscle_group] = (freqCounts[ex.muscle_group] || 0) + 1;
+                weightTotals[ex.muscle_group] = (weightTotals[ex.muscle_group] || 0) + (l.weight * l.reps * mult);
+            });
+
+            const freqData = allMuscleCategories.map(g => freqCounts[g]);
+            const weightData = allMuscleCategories.map(g => weightTotals[g]);
+
+            activeCharts['radarFreq'] = new Chart(document.getElementById('chart-radar-freq'), {
+                type: 'radar',
+                data: {
+                    labels: allMuscleCategories,
+                    datasets: [{
+                        label: 'Sets Logged',
+                        data: freqData,
+                        backgroundColor: 'rgba(0, 112, 243, 0.2)',
+                        borderColor: '#0070f3',
+                        pointBackgroundColor: '#0070f3'
+                    }]
+                },
+                options: { responsive: true, scales: { r: { beginAtZero: true } } }
+            });
+
+            activeCharts['radarWeight'] = new Chart(document.getElementById('chart-radar-weight'), {
+                type: 'radar',
+                data: {
+                    labels: allMuscleCategories,
+                    datasets: [{
+                        label: 'Total Weight Moved (kg)',
+                        data: weightData,
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        borderColor: '#22c55e',
+                        pointBackgroundColor: '#22c55e'
+                    }]
+                },
+                options: { responsive: true, scales: { r: { beginAtZero: true } } }
+            });
         }
 
         window.onload = initApp;
