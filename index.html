@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -262,11 +263,42 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.02);
         }
 
+        .exercise-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
         .exercise-name {
             font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 12px;
             color: #1e293b;
+        }
+
+        .sa-toggle-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 5px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+
+        .sa-checkbox {
+            display: none;
+        }
+
+        .sa-checkbox:checked + .sa-toggle-label {
+            background-color: #334155;
+            color: white;
+            border-color: #334155;
         }
 
         .log-inputs {
@@ -814,7 +846,7 @@
 
                 const { data: dbLogs } = await supabaseClient
                     .from('set_logs')
-                    .select('id, exercise_id, weight, reps')
+                    .select('id, exercise_id, weight, reps, is_single_arm')
                     .eq('session_id', todaySession.id)
                     .order('exercise_order', { ascending: true });
 
@@ -833,6 +865,7 @@
                         exercise_name: exObj ? exObj.exercise : "Exercise",
                         weight: l.weight,
                         reps: l.reps,
+                        is_single_arm: l.is_single_arm || false,
                         date: today,
                         synced: true,
                         remote_id: l.id,
@@ -1025,7 +1058,13 @@
                 const isCardio = ex.muscle_group === 'Cardio';
                 return `
                     <div class="exercise-card hidden" data-muscle="${ex.muscle_group}" id="ex-card-${ex.id}">
-                        <div class="exercise-name">${ex.exercise}</div>
+                        <div class="exercise-card-header">
+                            <div class="exercise-name">${ex.exercise}</div>
+                            <div class="${isCardio ? 'hidden' : ''}">
+                                <input type="checkbox" id="sa-${ex.id}" class="sa-checkbox">
+                                <label for="sa-${ex.id}" class="sa-toggle-label">Single Arm</label>
+                            </div>
+                        </div>
                         <div class="log-inputs">
                             <div class="input-group">
                                 <label>${isCardio ? 'Minutes' : 'Weight (kg)'}</label>
@@ -1063,9 +1102,11 @@
         async function logSetLocal(exerciseId, isCardio) {
             const weightInput = document.getElementById(`input-w-${exerciseId}`);
             const repsInput = document.getElementById(`input-r-${exerciseId}`);
+            const saCheckbox = document.getElementById(`sa-${exerciseId}`);
 
             const weight = parseFloat(weightInput.value) || 0;
             const reps = isCardio ? 1 : parseInt(repsInput.value) || 0;
+            const isSingleArm = isCardio ? false : saCheckbox.checked;
 
             if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
 
@@ -1080,6 +1121,7 @@
                 exercise_name: exObject.exercise,
                 weight: weight,
                 reps: reps,
+                is_single_arm: isSingleArm,
                 date: today,
                 synced: false,
                 remote_id: null
@@ -1088,7 +1130,10 @@
             localLogsMemory.push(newLogEntry);
             saveLocalLogs();
 
-            if (!isCardio) repsInput.value = '';
+            if (!isCardio) {
+                repsInput.value = '';
+                saCheckbox.checked = false; // Reset toggle after logging
+            }
             weightInput.value = '';
 
             calculateLocalVolume();
@@ -1148,6 +1193,7 @@
                         exercise_id: logEntry.exercise_id,
                         weight: logEntry.weight,
                         reps: logEntry.reps,
+                        is_single_arm: logEntry.is_single_arm,
                         exercise_order: currentOrder + 1
                     }])
                     .select()
@@ -1208,7 +1254,8 @@
             const lastDisplay = document.getElementById('last-set-display');
             if (athleteLogs.length > 0) {
                 const lastLog = athleteLogs[athleteLogs.length - 1];
-                lastDisplay.textContent = `Last Set: ${lastLog.exercise_name} - ${lastLog.weight} kg x ${lastLog.reps}`;
+                const saTag = lastLog.is_single_arm ? ' [Single Arm]' : '';
+                lastDisplay.textContent = `Last Set: ${lastLog.exercise_name}${saTag} - ${lastLog.weight} kg x ${lastLog.reps}`;
             } else {
                 lastDisplay.textContent = "Last Set: None";
             }
@@ -1351,7 +1398,7 @@
 
                 const { data: allLogs } = await supabaseClient
                     .from('set_logs')
-                    .select('session_id, exercise_id, weight, reps')
+                    .select('session_id, exercise_id, weight, reps, is_single_arm')
                     .in('session_id', sessionIds);
 
                 const logsForVolume = selectedExerciseId
@@ -1426,7 +1473,8 @@
                     bestByMuscle[ex.muscle_group] = {
                         weight: l.weight,
                         reps: l.reps,
-                        exercise: ex.exercise
+                        exercise: ex.exercise,
+                        is_single_arm: l.is_single_arm
                     };
                 }
             });
@@ -1435,6 +1483,7 @@
             const bestWeights = muscleGroupLabels.map(g => bestByMuscle[g].weight);
             const bestReps = muscleGroupLabels.map(g => bestByMuscle[g].reps);
             const bestExercises = muscleGroupLabels.map(g => bestByMuscle[g].exercise);
+            const bestSaFlags = muscleGroupLabels.map(g => bestByMuscle[g].is_single_arm);
 
             document.getElementById("adaptive-chart-title").textContent =
                 `${viewingAthlete} - Best Ever Set Per Muscle Group (kg)`;
@@ -1457,7 +1506,8 @@
                             callbacks: {
                                 label: (ctx) => {
                                     const i = ctx.dataIndex;
-                                    return `${bestWeights[i]}kg x ${bestReps[i]} reps - ${bestExercises[i]}`;
+                                    const saText = bestSaFlags[i] ? ' (Single Arm)' : '';
+                                    return `${bestWeights[i]}kg x ${bestReps[i]} reps - ${bestExercises[i]}${saText}`;
                                 }
                             }
                         }
