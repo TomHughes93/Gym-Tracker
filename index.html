@@ -497,7 +497,7 @@
             </div>
 
             <div id="guest-login-panel" class="guest-login-panel">
-                <div class="guest-banner-text">Browsing in guest mode — feel free to click around. Log in so every set you log saves straight to the database as you go.</div>
+                <div class="guest-banner-text">Browsing in guest mode - feel free to click around. Log in so every set you log saves straight to the database as you go.</div>
                 <div class="guest-login-inputs">
                     <input type="email" id="auth-email" placeholder="Email">
                     <input type="password" id="auth-password" placeholder="Password">
@@ -516,7 +516,7 @@
         <div id="panel-track">
             <div id="last-session-panel" class="last-session-panel hidden">
                 <div class="last-session-title">Last Session</div>
-                <div class="last-session-body" id="last-session-body">—</div>
+                <div class="last-session-body" id="last-session-body">-</div>
             </div>
 
             <div class="stats-panel">
@@ -596,8 +596,8 @@
             <div id="orm-result-box" class="hidden">
                 <div class="chart-box">
                     <div class="chart-title">Estimated One Rep Max</div>
-                    <div id="orm-result-value" style="font-size:1.8rem; font-weight:800; color:#1e293b;">—</div>
-                    <div style="font-size:0.75rem; color:#718096; margin-top:4px;">Epley formula — most accurate under ~12 reps</div>
+                    <div id="orm-result-value" style="font-size:1.8rem; font-weight:800; color:#1e293b;">-</div>
+                    <div style="font-size:0.75rem; color:#718096; margin-top:4px;">Epley formula - most accurate under ~12 reps</div>
                 </div>
 
                 <div class="chart-box">
@@ -683,24 +683,24 @@
             { id: "62", exercise: "Treadmill", muscle_group: "Cardio" },
             { id: "63", exercise: "Spinning Bike", muscle_group: "Cardio" },
             { id: "64", exercise: "Seated Bike", muscle_group: "Cardio" },
-            { id: "bar_lat_pull_down", exercise: "Lat Pull Down (Straight Bar)", muscle_group: "Back" },
-            { id: "bar_lat_pull_over", exercise: "Lat Pull Over (Straight Bar)", muscle_group: "Back" },
-            { id: "bayesian_curl", exercise: "Bayesian Curl", muscle_group: "Biceps" },
-            { id: "cable_hammer_curl", exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
-            { id: "mach_flat_bench", exercise: "Flat Bench Press (Machine)", muscle_group: "Chest" },
-            { id: "mach_lat_pull_down", exercise: "Lat Pull Down (Plate Loaded)", muscle_group: "Back" },
-            { id: "mach_oh_press", exercise: "Shoulder Press (Machine)", muscle_group: "Shoulders" },
-            { id: "mach_preacher_curl", exercise: "Preacher Curl (Machine)", muscle_group: "Biceps" },
-            { id: "rev_lat_pull_down", exercise: "Lat Pull Down (Reverse Grip)", muscle_group: "Back" },
-            { id: "rope_lat_pull_over", exercise: "Lat Pull Over (Rope)", muscle_group: "Back" },
-            { id: "single_handle_tricep", exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
-            { id: "single_rear_delt_fly", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
-            { id: "standing_hamstring_curl", exercise: "Standing Hamstring Curl", muscle_group: "Legs" }
+            { id: "65", exercise: "Lat Pull Down (Straight Bar)", muscle_group: "Back" },
+            { id: "66", exercise: "Lat Pull Over (Straight Bar)", muscle_group: "Back" },
+            { id: "67", exercise: "Bayesian Curl", muscle_group: "Biceps" },
+            { id: "68", exercise: "Cable Hammer Curl", muscle_group: "Biceps" },
+            { id: "69", exercise: "Flat Bench Press (Machine)", muscle_group: "Chest" },
+            { id: "70", exercise: "Lat Pull Down (Plate Loaded)", muscle_group: "Back" },
+            { id: "71", exercise: "Shoulder Press (Machine)", muscle_group: "Shoulders" },
+            { id: "72", exercise: "Preacher Curl (Machine)", muscle_group: "Biceps" },
+            { id: "73", exercise: "Lat Pull Down (Reverse Grip)", muscle_group: "Back" },
+            { id: "74", exercise: "Lat Pull Over (Rope)", muscle_group: "Back" },
+            { id: "75", exercise: "Single Handle Tricep Pushdown", muscle_group: "Triceps" },
+            { id: "76", exercise: "Single Rear Delt Fly", muscle_group: "Shoulders" },
+            { id: "77", exercise: "Standing Hamstring Curl", muscle_group: "Legs" }
         ];
 
         // Runtime state
-        let currentUser = null;          // { id, name } — set once logged in, null in guest mode
-        let usersMap = {};                // { Ginge: uuid, Swift: uuid } — for analytics lookups
+        let currentUser = null;          // { id, name } - set once logged in, null in guest mode
+        let usersMap = {};                // { Ginge: uuid, Swift: uuid } - for analytics lookups
         let localLogsMemory = [];
         let activeCharts = {};
         let retryTimerHandle = null;
@@ -735,7 +735,7 @@
                 }
             });
 
-            // App content is always visible — guest or logged in
+            // App content is always visible - guest or logged in
             initLocalTracker();
 
             // Retry any sets that failed to reach the DB (e.g. dead patch of gym wifi)
@@ -747,7 +747,7 @@
             retryTimerHandle = setInterval(retryPendingSyncs, 20000);
         }
 
-        // Public-safe lookup (id + name only, never email) — works whether
+        // Public-safe lookup (id + name only, never email) - works whether
         // or not anyone is logged in.
         async function loadAthleteNames() {
             const { data, error } = await supabaseClient.rpc('get_athlete_names');
@@ -918,7 +918,7 @@
 
             const dateLabel = new Date(lastSession.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-            body.innerHTML = `${dateLabel} — <span class="weight">${totalWeight.toLocaleString()} kg</span> moved<br>` +
+            body.innerHTML = `${dateLabel} - <span class="weight">${totalWeight.toLocaleString()} kg</span> moved<br>` +
                 (muscleGroups.length > 0 ? muscleGroups.join(', ') : 'No muscle group data');
 
             panel.classList.remove('hidden');
@@ -1192,7 +1192,7 @@
                 const { error } = await supabaseClient.from('set_logs').delete().eq('id', removed.remote_id);
                 if (error) {
                     console.error('Failed to delete synced set from DB:', error);
-                    alert('Removed from this screen, but it may still be saved in the database — check your history and delete it there if needed.');
+                    alert('Removed from this screen, but it may still be saved in the database - check your history and delete it there if needed.');
                 }
             }
         }
@@ -1235,7 +1235,7 @@
             line.classList.remove('hidden');
             if (pendingCount > 0) {
                 line.className = 'sync-status-line pending';
-                line.textContent = `⏳ ${pendingCount} set${pendingCount > 1 ? 's' : ''} waiting to sync — will retry automatically`;
+                line.textContent = `⏳ ${pendingCount} set${pendingCount > 1 ? 's' : ''} waiting to sync - will retry automatically`;
             } else {
                 line.className = 'sync-status-line synced';
                 line.textContent = '✓ All sets saved to database';
@@ -1249,14 +1249,14 @@
                 document.getElementById('guest-login-panel').classList.remove('hidden');
                 document.getElementById('guest-login-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 document.getElementById('auth-gate-error').textContent =
-                    'Log in to save this session — your sets logged so far will carry over and sync immediately.';
+                    'Log in to save this session - your sets logged so far will carry over and sync immediately.';
                 return;
             }
             finishWorkout();
         }
 
         // Every set is already synced as it's logged, so this no longer does
-        // the actual saving — it just double-checks nothing is stuck pending,
+        // the actual saving - it just double-checks nothing is stuck pending,
         // then wraps up the on-screen view for the next workout.
         async function finishWorkout() {
             const today = todayStamp();
@@ -1276,7 +1276,7 @@
             );
 
             if (remainingPending.length > 0) {
-                alert(`${remainingPending.length} set(s) still haven't reached the database (likely no signal). They're safely stored on this device and will keep retrying — don't clear your browser data until they sync.`);
+                alert(`${remainingPending.length} set(s) still haven't reached the database (likely no signal). They're safely stored on this device and will keep retrying - don't clear your browser data until they sync.`);
                 return;
             }
 
@@ -1391,8 +1391,8 @@
             const volumeValues = sessionDataPoints.map(pt => pt.volume);
 
             document.getElementById("volume-chart-title").textContent = selectedExerciseId
-                ? `${viewingAthlete} — Exercise Workload (kg)`
-                : `${viewingAthlete} — Total Session Volume Over Time (kg)`;
+                ? `${viewingAthlete} - Exercise Workload (kg)`
+                : `${viewingAthlete} - Total Session Volume Over Time (kg)`;
 
             activeCharts['volume'] = new Chart(document.getElementById('chart-volume'), {
                 type: 'line',
@@ -1437,7 +1437,7 @@
             const bestExercises = muscleGroupLabels.map(g => bestByMuscle[g].exercise);
 
             document.getElementById("adaptive-chart-title").textContent =
-                `${viewingAthlete} — Best Ever Set Per Muscle Group (kg)`;
+                `${viewingAthlete} - Best Ever Set Per Muscle Group (kg)`;
 
             activeCharts['progression'] = new Chart(document.getElementById('chart-progression'), {
                 type: 'bar',
@@ -1457,7 +1457,7 @@
                             callbacks: {
                                 label: (ctx) => {
                                     const i = ctx.dataIndex;
-                                    return `${bestWeights[i]}kg x ${bestReps[i]} reps — ${bestExercises[i]}`;
+                                    return `${bestWeights[i]}kg x ${bestReps[i]} reps - ${bestExercises[i]}`;
                                 }
                             }
                         }
@@ -1467,7 +1467,7 @@
 
             if (muscleGroupLabels.length === 0) {
                 document.getElementById("adaptive-chart-title").textContent =
-                    `${viewingAthlete} — Best Ever Set Per Muscle Group (no data yet)`;
+                    `${viewingAthlete} - Best Ever Set Per Muscle Group (no data yet)`;
             }
         }
 
