@@ -168,6 +168,13 @@
             margin-top: 5px;
         }
 
+        .timer-display {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-top: 4px;
+        }
+
         .last-set-text {
             font-size: 0.85rem;
             margin-top: 8px;
@@ -400,67 +407,6 @@
             font-size: 0.95rem;
         }
 
-        .auth-gate-box {
-            background-color: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            max-width: 400px;
-            margin: 60px auto;
-        }
-
-        .gate-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #1e293b;
-            margin-bottom: 4px;
-            text-align: center;
-        }
-
-        .gate-subtitle {
-            font-size: 0.85rem;
-            color: #718096;
-            text-align: center;
-            margin-bottom: 18px;
-        }
-
-        .gate-inputs {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .btn-gate {
-            background-color: #334155;
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.95rem;
-        }
-
-        .gate-error {
-            color: var(--danger-color);
-            font-size: 0.85rem;
-            text-align: center;
-            min-height: 18px;
-        }
-
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background-color: var(--success-color);
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .status-dot.guest {
-            background-color: #94a3b8;
-        }
-
         .guest-login-panel {
             background-color: #f8fafc;
             border: 1px solid var(--border-color);
@@ -532,9 +478,9 @@
                 <div class="guest-login-inputs">
                     <input type="email" id="auth-email" placeholder="Email">
                     <input type="password" id="auth-password" placeholder="Password">
-                    <button type="button" class="btn-gate" onclick="handleLogin()">Log In</button>
+                    <button type="button" class="btn-gate" onclick="handleLogin()" style="background-color:#334155; color:white; border:none; padding:12px; border-radius:8px; font-weight:600; cursor:pointer;">Log In</button>
                 </div>
-                <div id="auth-gate-error" class="gate-error"></div>
+                <div id="auth-gate-error" style="color:var(--danger-color); font-size:0.85rem; text-align:center; min-height:18px; margin-top:4px;"></div>
             </div>
 
             <div class="tab-menu">
@@ -555,6 +501,7 @@
                     <div>
                         <div class="stats-title">Today's Session Volume</div>
                         <div id="total-volume" class="stats-value">0 kg</div>
+                        <div id="session-timer" class="timer-display">Duration: 00:00</div>
                     </div>
                     <button type="button" class="btn-undo" onclick="undoLastSetLocal()">Undo Set</button>
                 </div>
@@ -746,6 +693,8 @@
         let localLogsMemory = [];
         let activeCharts = {};
         let retryTimerHandle = null;
+        let sessionStartTime = null;
+        let timerIntervalHandle = null;
 
         const GUEST_KEY = 'guest';
         function identityKey() { return currentUser ? currentUser.id : GUEST_KEY; }
@@ -809,7 +758,7 @@
 
             if (error || !profile) {
                 document.getElementById('auth-gate-error').textContent =
-                    "Logged in, but no matching athlete profile was found. Ask whoever manages the database to add your account to the users table.";
+                    "Logged in, but no matching athlete profile was found.";
                 await supabaseClient.auth.signOut();
                 return;
             }
@@ -820,6 +769,7 @@
             renderLoggedInUI();
             
             await syncServerLogsIntoMemory(profile);
+            checkAndStartTimer();
 
             calculateLocalVolume();
             retryPendingSyncs();
@@ -834,7 +784,7 @@
             try {
                 const { data: todaySession } = await supabaseClient
                     .from('workout_sessions')
-                    .select('id')
+                    .select('id, date')
                     .eq('user_id', profile.id)
                     .gte('date', `${today}T00:00:00`)
                     .lte('date', `${today}T23:59:59`)
@@ -843,6 +793,10 @@
                     .maybeSingle();
 
                 if (!todaySession) return;
+
+                // Set session start time based on when the session was created on server
+                sessionStartTime = new Date(todaySession.date).getTime();
+                startSessionTimer();
 
                 const { data: dbLogs } = await supabaseClient
                     .from('set_logs')
@@ -896,6 +850,7 @@
             document.getElementById('guest-login-panel').classList.remove('hidden');
             document.getElementById('logout-row').classList.add('hidden');
             document.getElementById('last-session-panel').classList.add('hidden');
+            checkAndStartTimer();
             calculateLocalVolume();
         }
 
@@ -911,6 +866,26 @@
             loadLastSessionSummary();
         }
 
+        function checkAndStartTimer() {
+            const today = todayStamp();
+            const athleteLogs = localLogsMemory.filter(log => log.user_id === identityKey() && log.date === today);
+            if (athleteLogs.length > 0 && !sessionStartTime) {
+                sessionStartTime = Date.now();
+                startSessionTimer();
+            }
+        }
+
+        function startSessionTimer() {
+            if (timerIntervalHandle) return;
+            timerIntervalHandle = setInterval(() => {
+                if (!sessionStartTime) return;
+                const elapsedSec = Math.floor((Date.now() - sessionStartTime) / 1000);
+                const mins = Math.floor(elapsedSec / 60).toString().padStart(2, '0');
+                const secs = (elapsedSec % 60).toString().padStart(2, '0');
+                document.getElementById('session-timer').textContent = `Duration: ${mins}:${secs}`;
+            }, 1000);
+        }
+
         async function loadLastSessionSummary() {
             const panel = document.getElementById('last-session-panel');
             const body = document.getElementById('last-session-body');
@@ -922,7 +897,7 @@
 
             const { data: lastSession } = await supabaseClient
                 .from('workout_sessions')
-                .select('id, date')
+                .select('id, date, duration_minutes')
                 .eq('user_id', currentUser.id)
                 .order('date', { ascending: false })
                 .limit(1)
@@ -952,8 +927,9 @@
             )].sort();
 
             const dateLabel = new Date(lastSession.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            const durationText = lastSession.duration_minutes ? ` (${lastSession.duration_minutes} mins)` : '';
 
-            body.innerHTML = `${dateLabel} - <span class="weight">${totalWeight.toLocaleString()} kg</span> moved<br>` +
+            body.innerHTML = `${dateLabel}${durationText} - <span class="weight">${totalWeight.toLocaleString()} kg</span> moved<br>` +
                 (muscleGroups.length > 0 ? muscleGroups.join(', ') : 'No muscle group data');
 
             panel.classList.remove('hidden');
@@ -988,6 +964,7 @@
 
             renderMuscleFilters();
             renderExerciseCards();
+            checkAndStartTimer();
             calculateLocalVolume();
             initMetricsDropdowns();
         }
@@ -1101,6 +1078,11 @@
             const isSingleArm = isCardio ? false : saCheckbox.checked;
 
             if (weight <= 0 || reps <= 0) return alert('Please enter valid logging metrics.');
+
+            if (!sessionStartTime) {
+                sessionStartTime = Date.now();
+                startSessionTimer();
+            }
 
             const today = todayStamp();
             const exObject = fallbackExercises.find(e => String(e.id) === String(exerciseId));
@@ -1228,7 +1210,7 @@
                 const { error } = await supabaseClient.from('set_logs').delete().eq('id', removed.remote_id);
                 if (error) {
                     console.error('Failed to delete synced set from DB:', error);
-                    alert('Removed from this screen, but it may still be saved in the database - check your history and delete it there if needed.');
+                    alert('Removed from this screen, but it may still be saved in the database.');
                 }
             }
         }
@@ -1310,17 +1292,37 @@
             );
 
             if (remainingPending.length > 0) {
-                alert(`${remainingPending.length} set(s) still haven't reached the database (likely no signal). They're safely stored on this device and will keep retrying - don't clear your browser data until they sync.`);
+                alert(`${remainingPending.length} set(s) still haven't reached the database. Will keep retrying.`);
                 return;
             }
 
-            if (!confirm(`All ${athleteLogs.length} set(s) for ${currentUser.name} are saved. Clear today's board to start fresh?`)) return;
+            // Calculate final duration in minutes
+            const durationMins = sessionStartTime ? Math.max(1, Math.round((Date.now() - sessionStartTime) / 60000)) : 0;
 
+            if (!confirm(`All ${athleteLogs.length} set(s) saved (${durationMins} mins duration). Clear today's board to start fresh?`)) return;
+
+            // Update session duration in DB
+            const sessionId = localStorage.getItem(`gym_session_${currentUser.id}_${today}`);
+            if (sessionId) {
+                await supabaseClient
+                    .from('workout_sessions')
+                    .update({ duration_minutes: durationMins })
+                    .eq('id', sessionId);
+            }
+
+            // Reset local state & timer
             localLogsMemory = localLogsMemory.filter(log => !(log.user_id === currentUser.id && log.date === today));
             saveLocalLogs();
             localStorage.removeItem(`gym_session_${currentUser.id}_${today}`);
-            calculateLocalVolume();
+            
+            sessionStartTime = null;
+            if (timerIntervalHandle) {
+                clearInterval(timerIntervalHandle);
+                timerIntervalHandle = null;
+            }
+            document.getElementById('session-timer').textContent = 'Duration: 00:00';
 
+            calculateLocalVolume();
             loadLastSessionSummary();
 
             if (!document.getElementById("panel-metrics").classList.contains("hidden")) {
@@ -1404,7 +1406,6 @@
 
             Object.keys(activeCharts).forEach(key => activeCharts[key].destroy());
 
-            // ---- Chart 1: Total Session Volume Over Time ----
             const volumeMap = {};
             sessions.forEach(s => {
                 const dateLabel = new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1443,7 +1444,6 @@
                 options: { responsive: true, scales: { y: { beginAtZero: true } } }
             });
 
-            // ---- Chart 2: Best Ever Set Per Muscle Group ----
             const bestByMuscle = {};
 
             allLogs.forEach(l => {
@@ -1501,7 +1501,6 @@
                 }
             });
 
-            // ---- Chart 3: Estimated 1RM Progression Over Time (if an exercise is selected) ----
             const ormBoxTitle = document.getElementById("orm-trend-chart-title");
             if (selectedExerciseId) {
                 const exObj = fallbackExercises.find(e => String(e.id) === String(selectedExerciseId));
@@ -1547,7 +1546,6 @@
                 });
             }
 
-            // ---- Radar Charts: Frequency & Weight Distribution by Muscle Group ----
             const allMuscleCategories = [...new Set(fallbackExercises.map(e => e.muscle_group).filter(g => g !== 'Cardio'))].sort();
             const freqCounts = {};
             const weightTotals = {};
