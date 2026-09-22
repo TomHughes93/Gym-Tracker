@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -175,12 +176,29 @@
             margin-top: 4px;
         }
 
-        .last-set-text {
-            font-size: 0.85rem;
+        .session-log-container {
+            max-height: 85px;
+            overflow-y: auto;
             margin-top: 8px;
-            opacity: 0.9;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             padding-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .session-log-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .session-log-container::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            font-size: 0.85rem;
+            opacity: 0.9;
         }
 
         .sync-status-line {
@@ -492,7 +510,7 @@
 
         <div id="panel-track">
             <div id="last-session-panel" class="last-session-panel hidden">
-                <div class="last-session-title">Last Session</div>
+                <div class="last-session-title">Previous Session Data</div>
                 <div class="last-session-body" id="last-session-body">-</div>
             </div>
 
@@ -505,7 +523,9 @@
                     </div>
                     <button type="button" class="btn-undo" onclick="undoLastSetLocal()">Undo Set</button>
                 </div>
-                <div id="last-set-display" class="last-set-text">Last Set: None</div>
+                <div id="session-log-display" class="session-log-container">
+                    <div class="log-entry">No sets logged yet.</div>
+                </div>
                 <div id="sync-status-line" class="sync-status-line synced hidden"></div>
             </div>
 
@@ -905,10 +925,13 @@
                 return;
             }
 
+            const todayStart = `${todayStamp()}T00:00:00`;
+
             const { data: lastSession } = await supabaseClient
                 .from('workout_sessions')
                 .select('id, date, duration_minutes')
                 .eq('user_id', currentUser.id)
+                .lt('date', todayStart)
                 .order('date', { ascending: false })
                 .limit(1)
                 .maybeSingle();
@@ -1113,7 +1136,6 @@
 
             if (!isCardio) {
                 repsInput.value = '';
-                saCheckbox.checked = false;
             }
             weightInput.value = '';
 
@@ -1180,6 +1202,12 @@
 
                 if (error) throw error;
 
+                const stillExists = localLogsMemory.some(l => l.id === logEntry.id);
+                if (!stillExists) {
+                    await supabaseClient.from('set_logs').delete().eq('id', data.id);
+                    return;
+                }
+
                 logEntry.synced = true;
                 logEntry.remote_id = data.id;
                 logEntry.session_id = sessionId;
@@ -1209,15 +1237,20 @@
 
             if (idxs.length === 0) return alert('No sets logged in this session to undo.');
 
-            const [removed] = localLogsMemory.splice(idxs[idxs.length - 1], 1);
+            const lastIdx = idxs[idxs.length - 1];
+            const removed = localLogsMemory.splice(lastIdx, 1)[0];
+            
             saveLocalLogs();
             calculateLocalVolume();
 
-            if (removed.synced && removed.remote_id) {
-                const { error } = await supabaseClient.from('set_logs').delete().eq('id', removed.remote_id);
+            if (removed.remote_id) {
+                const { error } = await supabaseClient
+                    .from('set_logs')
+                    .delete()
+                    .eq('id', removed.remote_id);
+                    
                 if (error) {
                     console.error('Failed to delete synced set from DB:', error);
-                    alert('Removed from this screen, but it may still be saved in the database.');
                 }
             }
         }
@@ -1231,13 +1264,15 @@
 
             document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} kg`;
 
-            const lastDisplay = document.getElementById('last-set-display');
+            const logContainer = document.getElementById('session-log-display');
             if (athleteLogs.length > 0) {
-                const lastLog = athleteLogs[athleteLogs.length - 1];
-                const saTag = lastLog.is_single_arm ? ' [Single Arm]' : '';
-                lastDisplay.textContent = `Last Set: ${lastLog.exercise_name}${saTag} - ${lastLog.weight} kg x ${lastLog.reps}`;
+                logContainer.innerHTML = athleteLogs.map((log, index) => {
+                    const saTag = log.is_single_arm ? ' [Single Arm]' : '';
+                    return `<div class="log-entry">${index + 1}. ${log.exercise_name}${saTag} - ${log.weight} kg x ${log.reps}</div>`;
+                }).join('');
+                logContainer.scrollTop = logContainer.scrollHeight;
             } else {
-                lastDisplay.textContent = "Last Set: None";
+                logContainer.innerHTML = '<div class="log-entry">No sets logged yet.</div>';
             }
 
             document.getElementById('btn-end-session').disabled = currentUser && athleteLogs.length === 0;
